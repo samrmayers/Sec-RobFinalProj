@@ -29,6 +29,22 @@ Evaluate a combined network
 python Trainer.py --train False --main_task BasicClassification --main_path ./networks/combined_weights --feature_nets PixelRandomization ./networks/pixel_distortion_weights  --dataloader Base
 ```
 
+## Todos
+
+- [ ] Incorporate real architectures to test on (resnet50, wide resnet or vgg16), can use pretrained weights for early layers
+- [ ] Implement patch-filling or some reconstruction based pretraining task
+- [ ] Implement color prediction
+- [ ] Implement Jigsaw puzzle solving
+- [ ] Implement contrastive learning
+- [ ] Implement at least one other (https://github.com/jason718/awesome-self-supervised-learning)
+- [ ] Train on pairs or combinations of pretraining tasks
+- [ ] (extra) include adversarial examples as part of contrastive learning
+
+Workflow for each
+- implement (dataloader, feature net, loss, choice code), train, and save
+- train incorporated classifier using each of the 2-3 main architectures, save weights
+- run attacks, record performance vs baseline
+
 ## References:
 https://pytorch.org/vision/stable/datasets.html#torchvision.datasets.CIFAR10
 
