@@ -5,10 +5,6 @@ import torch.nn as nn
 
 # from above ^ said this loss was good for tensor overlap
 class DiceLoss(nn.Module):
-    '''
-        Class to define loss give input, model output and groundtruth
-    '''
-
     def __init__(self):
         super().__init__()
 
@@ -22,3 +18,10 @@ class DiceLoss(nn.Module):
         return 1 - ((2. * intersection + smooth) /
                     (iflat.sum() + tflat.sum() + smooth))
 
+def get_loss(task):
+    if task == "BasicClassification":
+        return nn.CrossEntropyLoss()
+    elif task == "PixelRandomization":
+        return DiceLoss()
+    else:
+        raise ValueError("No loss specified for this task")
