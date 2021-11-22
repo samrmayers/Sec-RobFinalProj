@@ -16,7 +16,8 @@ python Trainer.py --train False --main_task BasicClassification --path ./network
 
 Train a pixel randomization network
 ```
-python Trainer.py --train True --main_task PixelRandomization --main_path ./networks/pixel_distortion_weights --dataloader PixelRandomization --epochs 10 --batch_size ```
+python Trainer.py --train True --main_task PixelRandomization --main_path ./networks/pixel_distortion_weights --dataloader PixelRandomization --epochs 10 --batch_size
+```
 
 Train a basic network with the pixel randomization pretraining task incorporated
 ```
