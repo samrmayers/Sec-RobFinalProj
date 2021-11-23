@@ -31,6 +31,7 @@ python Trainer.py --train False --main_task BasicClassification --main_path ./ne
 
 ## Todos
 
+- [ ] Add attacks as a dataloader
 - [ ] Incorporate real architectures to test on (resnet50, wide resnet or vgg16), can use pretrained weights for early layers
 - [ ] Implement patch-filling or some reconstruction based pretraining task
 - [ ] Implement color prediction

@@ -66,7 +66,7 @@ def main(args):
     should_train = (args.train == 'True')
 
     network = make_network(args.main_task, args.main_path, args.feature_nets, should_train)
-    dataloader = get_dataloader(args.dataloader, should_train, args.batch_size)
+    dataloader = get_dataloader(args.dataloader, should_train, args.batch_size, network, args.attack)
 
     if should_train:
         train(network, dataloader, args.main_task, args.main_path, args.epochs, args.scheduler_period)
@@ -84,8 +84,8 @@ Arguments:
     epochs              -- number of epochs for training
     scheduler_period    -- LR scheduler step size for training, not used if 0
     batch_size          -- batch size for training or testing
-    dataloader          -- type of dataloader, including transformations for
-                            pretraining tasks or attacks
+    dataloader          -- type of dataloader
+    attack              -- type of attack to use in testing
 """
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -110,5 +110,8 @@ if __name__ == '__main__':
                         help='The batch size for training or testing.')
     parser.add_argument('--dataloader',dest='dataloader',required=True,
                         help='The name of the dataloader to use in training or testing.')
+    parser.add_argument('--attack',dest='attack',required=False,
+                        default=None,
+                        help='The attack to use in testing')
     args = parser.parse_args()
     main(args)
