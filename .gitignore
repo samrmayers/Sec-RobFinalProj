@@ -6,6 +6,11 @@ __pycache__/
 networks/
 traindata/
 testdata/
+bin/
+include/
+lib/
+share/
+pyvenv.cfg
 
 # C extensions
 *.so

@@ -23,5 +23,9 @@ def get_loss(task):
         return nn.CrossEntropyLoss()
     elif task == "PixelRandomization":
         return DiceLoss()
+    elif task == "PatchFill":
+        return nn.CrossEntropyLoss()
+    elif task == "Jigsaw":
+        return nn.CrossEntropyLoss()
     else:
         raise ValueError("No loss specified for this task")

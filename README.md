@@ -11,12 +11,12 @@ python Trainer.py --train True --main_task BasicClassification --main_path ./net
 
 Evaluate a basic network
 ```
-python Trainer.py --train False --main_task BasicClassification --path ./networks/basicnet_weights --dataloader Base
+python Trainer.py --train False --main_task BasicClassification --main_path ./networks/basicnet_weights --dataloader Base
 ```
 
 Train a pixel randomization network
 ```
-python Trainer.py --train True --main_task PixelRandomization --main_path ./networks/pixel_distortion_weights --dataloader PixelRandomization --epochs 10 --batch_size
+python Trainer.py --train True --main_task PixelRandomization --main_path ./networks/pixel_distortion_weights --dataloader PixelRandomization --epochs 10 --batch_size 16
 ```
 
 Train a basic network with the pixel randomization pretraining task incorporated

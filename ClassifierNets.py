@@ -58,6 +58,10 @@ def get_network(task):
         return BasicNet
     elif task == "PixelRandomization":
         return DistortedPixelNet
+    elif task == "PatchFill":
+        return SelfieNet
+    elif task == "Jigsaw":
+        return JigsawNet
     else:
         raise ValueError(f"Invalid network type {task}")
 
