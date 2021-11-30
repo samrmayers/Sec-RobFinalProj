@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 from Util import Normalize
+from torchvision import datasets, models, transforms
 
 """
 Modules for pretraining tasks
@@ -141,3 +142,4 @@ class JigsawNet(nn.Module):
 
     def get_feature_size(self):
         return self.feature_size
+

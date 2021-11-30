@@ -88,7 +88,7 @@ class PatchDataset(Dataset):
 
         self.new_set = []
 
-        for idx in tqdm.tqdm(range(0, len(self.base_dataset)-49900), total=len(self.base_dataset)-49900):
+        for idx in tqdm.tqdm(range(0, len(self.base_dataset)), total=len(self.base_dataset)):
             this_pic = torch.clone(self.base_dataset[idx][0])
             label = self.base_dataset[idx][1]
 
@@ -163,7 +163,7 @@ class JigsawDataset(Dataset):
         self.permutations = perms[:64] # these are the possible permutations
         self.new_set = []
 
-        for idx in tqdm.tqdm(range(0, len(self.base_dataset)-49900), total=len(self.base_dataset)-49900):
+        for idx in tqdm.tqdm(range(0, len(self.base_dataset)), total=len(self.base_dataset)):
             this_pic = torch.clone(self.base_dataset[idx][0])
             label = self.base_dataset[idx][1]
             index = random.randint(0, len(self.permutations)-1)
