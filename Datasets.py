@@ -206,8 +206,18 @@ class AttackDataset(Dataset):
 
         self.new_set = []
 
-        if attack == "PGD":
-            attack_fn = attacks.PGD(network, eps=8/255, alpha=2/225, steps=100, random_start=True)
+        if attack == "FGSM":
+            attack_fn = attacks.FGSM(network, eps=8/255)
+        elif attack == "PGD50":
+            attack_fn = attacks.PGD(network, eps=8/255, alpha=2/225, steps=50, random_start=True)
+        elif attack == "PGD200":
+            attack_fn = attacks.PGD(network, eps=8/255, alpha=2/225, steps=200, random_start=True)
+        elif attack == "BIM":
+            attack_fn = attacks.BIM(network, eps=8/255, alpha=2/255, steps=50)
+        elif attack == "AutoAttack":
+            attack_fn = attacks.AutoAttack(network, eps=8/255, n_classes=10, version='standard')
+        elif attack == "CW":
+            attack_fn = attacks.CW(network, c=1, lr=0.01, steps=50, kappa=0)
         else:
             raise ValueError("Not a valid attack type")
 

@@ -1,8 +1,10 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
+import torchvision
 from Util import freeze_module, Normalize
 from FeatureNets import *
+from ResNets import *
 
 """
 Modules for main classification tasks.
@@ -52,6 +54,64 @@ class BasicNet(nn.Module):
         x = self.fc3(x)
         return x
 
+class ResNet18(nn.Module):
+    def __init__(self, feature_networks, num_features):
+        super().__init__()
+        self.norm = Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        self.rescale = torchvision.transforms.Resize((224,224))
+
+        self.resnet = resnet18(num_classes=1000, pretrained=True, progress=True)
+
+        self.feature_networks = feature_networks
+        for net in self.feature_networks:
+            freeze_module(net)
+
+        self.num_features = num_features
+        self.fc1 = nn.Linear(1000 + self.num_features, 100)
+        self.fc2 = nn.Linear(100, 10)
+
+    def forward(self, x):
+        x = self.norm(x)
+        x_orig = x.clone()
+        x = self.rescale(x)
+        x = self.resnet(x)
+
+        for net in self.feature_networks:
+            x = torch.cat((x, net.get_features(x_orig)), 1)
+
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
+class ResNet50(nn.Module):
+    def __init__(self, feature_networks, num_features):
+        super().__init__()
+        self.norm = Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        self.rescale = torchvision.transforms.Resize((224,224))
+
+        self.resnet = resnet50(num_classes=1000, pretrained=True, progress=True)
+
+        self.feature_networks = feature_networks
+        for net in self.feature_networks:
+            freeze_module(net)
+
+        self.num_features = num_features
+        self.fc1 = nn.Linear(1000 + self.num_features, 100)
+        self.fc2 = nn.Linear(100, 10)
+
+    def forward(self, x):
+        x = self.norm(x)
+        x_orig = x.clone()
+        x = self.rescale(x)
+        x = self.resnet(x)
+
+        for net in self.feature_networks:
+            x = torch.cat((x, net.get_features(x_orig)), 1)
+
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
 # Add more networks here as they are added
 def get_network(task):
     if task == "BasicClassification":
@@ -62,6 +122,10 @@ def get_network(task):
         return SelfieNet
     elif task == "Jigsaw":
         return JigsawNet
+    elif task == "ResNet18":
+        return ResNet18
+    elif task == "ResNet50":
+        return ResNet50
     else:
         raise ValueError(f"Invalid network type {task}")
 

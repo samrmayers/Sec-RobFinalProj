@@ -27,5 +27,9 @@ def get_loss(task):
         return nn.CrossEntropyLoss()
     elif task == "Jigsaw":
         return nn.CrossEntropyLoss()
+    elif task == "ResNet18":
+        return nn.CrossEntropyLoss()
+    elif task == "ResNet50":
+        return nn.CrossEntropyLoss()
     else:
         raise ValueError("No loss specified for this task")

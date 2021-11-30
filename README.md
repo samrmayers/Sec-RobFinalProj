@@ -54,3 +54,5 @@ https://github.com/Harry24k/adversarial-attacks-pytorch
 https://arxiv.org/pdf/2103.14222.pdf
 
 (We should include one for color prediction)
+
+cite pytorch resnet implementation

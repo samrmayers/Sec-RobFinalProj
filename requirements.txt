@@ -35,6 +35,7 @@ scipy==1.7.1
 six==1.16.0
 tifffile==2021.11.2
 torch==1.10.0
+torchattacks==3.2.2
 torchvision==0.11.1
 tqdm==4.62.3
 typing-extensions==3.10.0.2
