@@ -199,6 +199,16 @@ class JigsawDataset(Dataset):
     def __getitem__(self, idx):
         return self.new_set[idx]
 
+# transforms for contrastive learning
+    #     transforms = torch.nn.Sequential(
+    #     transforms.RandomResizedCrop(size=size),
+    #     transforms.RandomHorizontalFlip(),
+    #     # transforms.RandomApply([color_jitter], p=0.8),
+    #     transforms.ColorJitter(0.8 * s, 0.8 * s, 0.8 * s, 0.2 * s),
+    #     transforms.RandomGrayscale(p=0.2),
+    #     # GaussianBlur(kernel_size=int(0.1 * size)),
+    # )
+
 
 class AttackDataset(Dataset):
     def __init__(self, base_dataset, network, attack):

@@ -52,9 +52,12 @@ def test(net, testloader):
     correct = 0
     total = 0
 
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    net = net.to(device)
+
     with torch.no_grad():
         for data in testloader:
-            images, labels = data
+            images, labels = data[0].to(device), data[1].to(device)
 
             outputs = net(images)
 
