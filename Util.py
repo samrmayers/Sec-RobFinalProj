@@ -29,3 +29,10 @@ class Normalize(nn.Module):
         mean = self.mean.reshape(1, 3, 1, 1)
         std = self.std.reshape(1, 3, 1, 1)
         return (x - mean) / std
+
+class Identity(nn.Module):
+    def __init__(self):
+        super(Identity, self).__init__()
+
+    def forward(self, x):
+        return x

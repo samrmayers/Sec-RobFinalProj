@@ -2,8 +2,9 @@ from Util import Normalize
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
-from Util import Normalize
-from torchvision import datasets, models, transforms
+from Util import Normalize, Identity
+import torchvision
+from ResNets import *
 
 """
 Modules for pretraining tasks
@@ -14,6 +15,65 @@ into another network.
 
 As such, "get_feature_size" should also be defined to return the number of features per image.
 """
+
+class ResNet18(nn.Module):
+    def __init__(self, feature_networks, num_features):
+        super().__init__()
+
+        if len(feature_networks) > 0 or num_features > 0:
+            raise ValueError("ResNet18 doesn't accept feature networks")
+
+        self.norm = Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        self.rescale = torchvision.transforms.Resize((224,224))
+
+        self.resnet = resnet18(num_classes=1000, pretrained=True, progress=True)
+
+        self.resnet.fc = Identity()
+
+        self.feature_size = 512
+        self.fc = nn.Linear(512, 10)
+
+    def get_features(self, x):
+        x = self.norm(x)
+        x = self.rescale(x)
+        return self.resnet(x)
+
+    def forward(self, x):
+        x = self.get_features(x)
+        return self.fc(x)
+
+    def get_feature_size(self):
+        return self.feature_size
+
+class ResNet50(nn.Module):
+    def __init__(self, feature_networks, num_features):
+        super().__init__()
+
+        if len(feature_networks) > 0 or num_features > 0:
+            raise ValueError("ResNet18 doesn't accept feature networks")
+
+        self.norm = Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        self.rescale = torchvision.transforms.Resize((224,224))
+
+        self.resnet = resnet50(num_classes=1000, pretrained=True, progress=True)
+
+        self.resnet.fc = Identity()
+
+        self.feature_size = 4096
+        self.fc = nn.Linear(4096, 10)
+
+    def get_features(self, x):
+        x = self.norm(x)
+        x = self.rescale(x)
+        return self.resnet(x)
+
+    def forward(self, x):
+        x = self.get_features(x)
+        return self.fc(x)
+
+    def get_feature_size(self):
+        return self.feature_size
+
 
 class DistortedPixelNet(nn.Module):
     def __init__(self, feature_nets, num_features):
@@ -148,4 +208,3 @@ class JigsawNet(nn.Module):
 
     def get_feature_size(self):
         return self.feature_size
-

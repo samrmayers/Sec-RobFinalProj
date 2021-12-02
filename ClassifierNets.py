@@ -54,63 +54,32 @@ class BasicNet(nn.Module):
         x = self.fc3(x)
         return x
 
-class ResNet18(nn.Module):
+class AggNet(nn.Module):
     def __init__(self, feature_networks, num_features):
         super().__init__()
-        self.norm = Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-        self.rescale = torchvision.transforms.Resize((224,224))
 
-        self.resnet = resnet18(num_classes=1000, pretrained=True, progress=True)
+        if len(feature_networks) == 0 or num_features == 0:
+            raise ValueError("JustFeaturesNet needs some feature networks")
 
         self.feature_networks = feature_networks
         for net in self.feature_networks:
             freeze_module(net)
 
         self.num_features = num_features
-        self.fc1 = nn.Linear(1000 + self.num_features, 100)
+        self.fc1 = nn.Linear(self.num_features, 100)
         self.fc2 = nn.Linear(100, 10)
 
     def forward(self, x):
-        x = self.norm(x)
-        x_orig = x.clone()
-        x = self.rescale(x)
-        x = self.resnet(x)
-
+        out = None
         for net in self.feature_networks:
-            x = torch.cat((x, net.get_features(x_orig)), 1)
+            if out is None:
+                out = net.get_features(x)
+            else:
+                out = torch.cat((out, net.get_features(x)), 1)
 
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-        return x
-
-class ResNet50(nn.Module):
-    def __init__(self, feature_networks, num_features):
-        super().__init__()
-        self.norm = Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-        self.rescale = torchvision.transforms.Resize((224,224))
-
-        self.resnet = resnet50(num_classes=1000, pretrained=True, progress=True)
-
-        self.feature_networks = feature_networks
-        for net in self.feature_networks:
-            freeze_module(net)
-
-        self.num_features = num_features
-        self.fc1 = nn.Linear(1000 + self.num_features, 100)
-        self.fc2 = nn.Linear(100, 10)
-
-    def forward(self, x):
-        x = self.norm(x)
-        x_orig = x.clone()
-        x = self.rescale(x)
-        x = self.resnet(x)
-
-        for net in self.feature_networks:
-            x = torch.cat((x, net.get_features(x_orig)), 1)
-
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-        return x
+        out = F.relu(self.fc1(out))
+        out = self.fc2(out)
+        return out
 
 # Add more networks here as they are added
 def get_network(task):
@@ -126,6 +95,8 @@ def get_network(task):
         return ResNet18
     elif task == "ResNet50":
         return ResNet50
+    elif task == "AggNet":
+        return AggNet
     else:
         raise ValueError(f"Invalid network type {task}")
 
