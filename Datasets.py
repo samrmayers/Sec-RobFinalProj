@@ -1,4 +1,4 @@
-from Util import imshow
+from Util import imshow, imshow_gray, gray
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 import torchvision
@@ -8,6 +8,7 @@ import tqdm
 import torchattacks as attacks
 import numpy as np
 import itertools
+import matplotlib.image as mpimg
 
 classes = ('plane', 'car', 'bird', 'cat',
                'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
@@ -125,6 +126,39 @@ class PatchDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.new_set[idx]
+
+class ColorDataset(Dataset):
+    """
+        For this dataset, create a black and white image and have original be the target.
+        """
+
+    def __init__(self, train, orig_labels=False):
+        self.base_dataset = BaseDataset(train)
+
+        self.new_set = []
+
+        for idx in tqdm.tqdm(range(0, len(self.base_dataset)), total=len(self.base_dataset)):
+            this_pic = torch.clone(self.base_dataset[idx][0])
+            label = self.base_dataset[idx][1]
+
+            blackandwhite = gray(this_pic)
+
+            imshow(this_pic)
+            imshow(blackandwhite)
+
+            if orig_labels:
+                tup = (this_pic, label)
+            else:
+                tup = (blackandwhite, this_pic)
+            self.new_set.append(tup)
+        print("done generating data")
+
+    def __len__(self):
+        return len(self.new_set)
+
+    def __getitem__(self, idx):
+        return self.new_set[idx]
+
 
 
 class JigsawDataset(Dataset):
@@ -244,6 +278,8 @@ def get_dataloader(dataset_type, train, batch_size, network, attack):
         dataset = PatchDataset(train)
     elif dataset_type == "Jigsaw":
         dataset = JigsawDataset(train)
+    elif dataset_type == "Color":
+        dataset = ColorDataset(train)
     else:
         raise ValueError("Not a valid dataset type")
 
@@ -254,4 +290,5 @@ def get_dataloader(dataset_type, train, batch_size, network, attack):
                         batch_size=batch_size, shuffle=True, num_workers=2)
 
 
-#get_dataloader("Jigsaw", True, 1, None, False)
+#get_dataloader("Color", True, 1, None, False)
+

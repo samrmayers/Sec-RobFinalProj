@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
+import torchvision
 
 # freezes a module so its weights aren't updated during the rest of the model training
 def freeze_module(module):
@@ -13,6 +14,19 @@ def freeze_module(module):
 # displays an image
 def imshow(img):
     img = img / 2 + 0.5     # unnormalize
+    npimg = img.numpy()
+    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    plt.show()
+
+# turns an image black and white
+def gray(img):
+    transform = torchvision.transforms.Grayscale(num_output_channels=3)
+    return transform(img)
+
+# displays black and white image
+def imshow_gray(img):
+    img = gray(img)
+    img = img / 2 + 0.5  # unnormalize
     npimg = img.numpy()
     plt.imshow(np.transpose(npimg, (1, 2, 0)))
     plt.show()
