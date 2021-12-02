@@ -79,8 +79,14 @@ class SelfieNet(nn.Module):
         x = F.relu(self.fc1(x))
         return F.relu(self.fc2(x))
 
+    # TODO: change for full image
     def get_features(self, x):
-        return self.patch_processing(x)
+        allx = []
+        for patch in x:
+            allx.append(self.patch_processing(patch))
+        u = torch.stack(allx)
+        u = u.sum(dim=0)
+        return u
 
     def forward(self, w):
         x = w[0]
