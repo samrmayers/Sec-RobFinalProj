@@ -97,6 +97,7 @@ class PatchDataset(Dataset):
             random.shuffle(target)
             x = []
             y = []
+            y_pos = []
             for r in range(0, 3):
                 for c in range(0, 3):
                     s = this_pic[0][r * 10 + r:r * 10 + 10 + r, c * 10 + c:c * 10 + 10 + c]
@@ -106,14 +107,16 @@ class PatchDataset(Dataset):
                     position = [0]*9
                     position[3*r+c] = 1
                     if 3*r+c in indeces:
-                        y.append((patch, torch.Tensor(position)))
+                        if target[indeces.index(3*r+c)]:
+                            y_pos = torch.Tensor(position)
+                        y.append(patch)
                     else:
                         x.append((patch, torch.Tensor(position)))
 
             if orig_labels:
                 tup = (this_pic, label)
             else:
-                tup = ([x, y], torch.Tensor(target))
+                tup = ([x, y, y_pos], torch.Tensor(target))
             self.new_set.append(tup)
         print("done generating data")
 

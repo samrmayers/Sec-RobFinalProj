@@ -141,6 +141,9 @@ class SelfieNet(nn.Module):
         x = F.relu(self.fc1(x))
         return F.relu(self.fc2(x))
 
+    def pos_processing(self, y_pos):
+        return F.relu(self.pos(y_pos))
+
     def get_features(self, x):
         allx = []
         for patch in x:
@@ -153,16 +156,19 @@ class SelfieNet(nn.Module):
     def forward(self, w):
         x = w[0]
         y = w[1]
+        y_pos = w[2]
         allx = []
         for patch in x:
             with_pos = torch.add(self.patch_processing(patch[0]), self.pos(patch[1])) #TODO: check that adding pos is ok? 99% sure this is right but might as well check
             allx.append(with_pos)
         u = torch.stack(allx)
-        u = u.sum(dim=0) #TODO: change to attention pooling network
+        u = u.sum(dim=0)  # TODO: change to attention pooling network
+        y_pos = self.pos_processing(y_pos) # change size of positional embedding to 84 so its the same as u
+        v = torch.cat([u, y_pos]) # concat to have v (patches + pos embedding of missing patch)
         ally = []
         for patch in y:
-            with_pos = torch.add(self.patch_processing(patch[0]), self.pos(patch[1]))
-            ally.append(torch.diagonal(torch.matmul(with_pos,torch.transpose(u, 0, 1))))
+            temp = self.patch_processing(patch)
+            ally.append(torch.diagonal(torch.matmul(temp,torch.transpose(v, 0, 1))))
         result = F.softmax(torch.stack(ally), dim=1)
         return torch.transpose(result, 0, 1)
 
