@@ -108,7 +108,7 @@ class PatchDataset(Dataset):
                     position[3*r+c] = 1
                     if 3*r+c in indeces:
                         if target[indeces.index(3*r+c)]:
-                            y_pos = torch.Tensor(position)
+                            y_pos = torch.Tensor(position) # positional embedding of patch indicated in target vector
                         y.append(patch)
                     else:
                         x.append((patch, torch.Tensor(position)))
