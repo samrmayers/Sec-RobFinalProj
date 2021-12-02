@@ -27,6 +27,7 @@ def train(network, trainloader, main_task, main_path, epochs, scheduler_period):
         print("EPOCH: ", epoch)
         for i, data in enumerate(trainloader, 0):
             inputs, labels = data[0].to(device), data[1].to(device)
+            #inputs, labels = data[0], data[1] #for testing on cpu
             optimizer.zero_grad()
 
             outputs = network(inputs)

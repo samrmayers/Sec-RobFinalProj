@@ -74,7 +74,6 @@ class ResNet50(nn.Module):
     def get_feature_size(self):
         return self.feature_size
 
-
 class DistortedPixelNet(nn.Module):
     def __init__(self, feature_nets, num_features):
         super().__init__()
@@ -129,21 +128,24 @@ class SelfieNet(nn.Module):
         # decoder
         self.fc3 = nn.Linear(84, 3)
 
+        # patch pos embedding
+        self.pos = nn.Linear(9,84)
+
         self.feature_size = 84
 
     def patch_processing(self, x):
         x = self.norm(x)
         x = self.conv1_bn(self.pool(F.relu(self.conv1(x))))
-        x = self.conv2_bn(F.relu(self.conv2(x)))
-        x = torch.flatten(x, 1) # flatten all dimensions except batch
+        x = self.conv2_bn(self.pool(F.relu(self.conv2(x))))
+        x = torch.flatten(x, 1)  # flatten all dimensions except batch
         x = F.relu(self.fc1(x))
         return F.relu(self.fc2(x))
 
-    # TODO: change for full image
     def get_features(self, x):
         allx = []
         for patch in x:
-            allx.append(self.patch_processing(patch))
+            with_pos = torch.add(self.patch_processing(patch[0]), self.pos(patch[1]))
+            allx.append(with_pos)
         u = torch.stack(allx)
         u = u.sum(dim=0)
         return u
@@ -153,13 +155,14 @@ class SelfieNet(nn.Module):
         y = w[1]
         allx = []
         for patch in x:
-            allx.append(self.patch_processing(patch))
+            with_pos = torch.add(self.patch_processing(patch[0]), self.pos(patch[1])) #TODO: check that adding pos is ok? 99% sure this is right but might as well check
+            allx.append(with_pos)
         u = torch.stack(allx)
         u = u.sum(dim=0) #TODO: change to attention pooling network
         ally = []
         for patch in y:
-            temp = self.patch_processing(patch)
-            ally.append(torch.diagonal(torch.matmul(temp,torch.transpose(u, 0, 1))))
+            with_pos = torch.add(self.patch_processing(patch[0]), self.pos(patch[1]))
+            ally.append(torch.diagonal(torch.matmul(with_pos,torch.transpose(u, 0, 1))))
         result = F.softmax(torch.stack(ally), dim=1)
         return torch.transpose(result, 0, 1)
 

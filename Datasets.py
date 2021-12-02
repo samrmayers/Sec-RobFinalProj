@@ -77,11 +77,10 @@ class PixelRandomizationDataset(Dataset):
 
 class PatchDataset(Dataset):
     """
-    For this dataset, create 16 patches of 8x8 pixels.
+    For this dataset, create 9 patches of 10x10 pixels.
     Randomly select 3 patches to be omitted from the input image.
-    Of these 3 patches, mildly distort 2. TODO: change to positional embedding instead
-    The target is a one hot vector indicating which is the non distorted patch missing from the input image.
-    TODO: should be x = 13 original patches, y = 3 original patches, target = one hot vec indicating which of the 3 patches belongs in the position of the original image indicated by the one-hot vector
+    The target is a one hot vector indicating which is the indicated patch missing from the input image.
+    should be x = 6 original patches, y = 3 original patches, target = one hot vec indicating which of the 3 patches belongs in the position of the original image indicated by the one-hot vector
     """
     def __init__(self, train, orig_labels=False):
         self.base_dataset = BaseDataset(train)
@@ -93,47 +92,23 @@ class PatchDataset(Dataset):
             label = self.base_dataset[idx][1]
 
             # pick which indeces will be y and which x
-            indeces = random.sample([n for n in range(0, 16)], k = 3)
+            indeces = random.sample([n for n in range(0, 9)], k = 3)
             target = [1, 0, 0]
             random.shuffle(target)
             x = []
             y = []
-            for r in range(0,4):
-                for c in range(0,4):
-                    s = this_pic[0][r*8:r*8+8,c*8:c*8+8]
-                    b = this_pic[1][r*8:r*8+8,c*8:c*8+8]
-                    g = this_pic[2][r*8:r*8+8,c*8:c*8+8]
+            for r in range(0, 3):
+                for c in range(0, 3):
+                    s = this_pic[0][r * 10 + r:r * 10 + 10 + r, c * 10 + c:c * 10 + 10 + c]
+                    b = this_pic[1][r * 10 + r:r * 10 + 10 + r, c * 10 + c:c * 10 + 10 + c]
+                    g = this_pic[2][r * 10 + r:r * 10 + 10 + r, c * 10 + c:c * 10 + 10 + c]
                     patch = torch.stack((s, b, g), dim=0)
-                    if 4*r+c in indeces:
-                        y.append(patch)
+                    position = [0]*9
+                    position[3*r+c] = 1
+                    if 3*r+c in indeces:
+                        y.append((patch, torch.Tensor(position)))
                     else:
-                        x.append(patch)
-
-            for i in range(0, len(target)):
-                value = target[i]
-                patch = y[i]
-
-                # TODO: get rid of this and add in positional embedding of chosen patch instead
-                # distort 2 of the patches slightly
-                if not value:
-                    for _ in range(0, 10): # distort 10 of 64 pixels
-                        # randomly select x and y value
-                        m = random.randint(0, 7)
-                        n = random.randint(0, 7)
-
-                        # three values to change
-                        r = random.uniform(-.1, .1)
-                        b = random.uniform(-.1, .1)
-                        g = random.uniform(-.1, .1)
-
-                        # change r
-                        patch[0][m][n] = patch[0][m][n] + r
-                        # change b
-                        patch[1][m][n] = patch[1][m][n] + b
-                        # change g
-                        patch[2][m][n] = patch[2][m][n] + g
-
-                y[i] = patch
+                        x.append((patch, torch.Tensor(position)))
 
             if orig_labels:
                 tup = (this_pic, label)
