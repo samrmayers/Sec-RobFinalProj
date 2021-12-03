@@ -217,3 +217,15 @@ class JigsawNet(nn.Module):
 
     def get_feature_size(self):
         return self.feature_size
+
+class ColorizerNet(nn.Module):
+    def __init__(self, feature_nets, num_features):
+        super().__init__()
+
+        if len(feature_nets) > 0 or num_features > 0:
+            raise ValueError("PixelDistortion doesn't accept feature networks")
+
+        self.norm = Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+
+        # https://github.com/emilwallner/Coloring-greyscale-images/blob/master/Alpha-version/alpha_version_notebook.ipynb
+

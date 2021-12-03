@@ -140,12 +140,7 @@ class ColorDataset(Dataset):
         for idx in tqdm.tqdm(range(0, len(self.base_dataset)), total=len(self.base_dataset)):
             this_pic = torch.clone(self.base_dataset[idx][0])
             label = self.base_dataset[idx][1]
-
             blackandwhite = gray(this_pic)
-
-            imshow(this_pic)
-            imshow(blackandwhite)
-
             if orig_labels:
                 tup = (this_pic, label)
             else:
@@ -278,7 +273,7 @@ def get_dataloader(dataset_type, train, batch_size, network, attack):
         dataset = PatchDataset(train)
     elif dataset_type == "Jigsaw":
         dataset = JigsawDataset(train)
-    elif dataset_type == "Color":
+    elif dataset_type == "Colorizer":
         dataset = ColorDataset(train)
     else:
         raise ValueError("Not a valid dataset type")

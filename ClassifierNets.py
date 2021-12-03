@@ -91,6 +91,8 @@ def get_network(task):
         return SelfieNet
     elif task == "Jigsaw":
         return JigsawNet
+    elif task == "Colorizer":
+        return ColorizerNet
     elif task == "ResNet18":
         return ResNet18
     elif task == "ResNet50":

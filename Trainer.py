@@ -12,7 +12,10 @@ classes = ('plane', 'car', 'bird', 'cat',
                'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 def train(network, trainloader, main_task, main_path, epochs, scheduler_period):
-    optimizer = optim.SGD(network.parameters(), lr=0.001, momentum=0.9)
+    if main_task == "Colorizer":
+        optimizer = optim.RMSprop(network.parameters(), lr=0.001, momentum=0.9)
+    else:
+        optimizer = optim.SGD(network.parameters(), lr=0.001, momentum=0.9)
 
     loss_fn = get_loss(main_task)
 
