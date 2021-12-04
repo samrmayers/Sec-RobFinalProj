@@ -88,7 +88,7 @@ def get_network(task):
     elif task == "PixelRandomization":
         return DistortedPixelNet
     elif task == "PatchFill":
-        return SelfieNet
+        return SelfieNetNew
     elif task == "Jigsaw":
         return JigsawNet
     elif task == "Colorizer":

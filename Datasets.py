@@ -27,7 +27,6 @@ class BaseDataset(Dataset):
     def __getitem__(self, idx):
         return self.trainset[idx]
 
-
 # Inputs: images with pixels changed. Labels: tensor indicating which pixels changed.
 class PixelRandomizationDataset(Dataset):
     def __init__(self, train, orig_labels=False):
@@ -74,7 +73,6 @@ class PixelRandomizationDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.new_set[idx]
-
 
 class PatchDataset(Dataset):
     """
@@ -153,8 +151,6 @@ class ColorDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.new_set[idx]
-
-
 
 class JigsawDataset(Dataset):
     """

@@ -175,6 +175,80 @@ class SelfieNet(nn.Module):
     def get_feature_size(self):
         return self.feature_size
 
+class SelfieNetNew(nn.Module):
+    """
+    All the patches are processed by the same patch processing network P .
+    On the encoder side, the output vectors produced by P are routed into the attention pooling network
+    to summarize these representations into a single vector u.
+    On the decoder side, P creates output vectors h1, h2, h3.
+    The decoder then queries the encoder by adding to the output vector u the location embedding of a patch,
+    selected at random among the patches in the decoder (e.g., location4) to create a vector v.
+    The vector v is then used in a dot product to compute the similarity between v and each h.
+    Having seen the dot products between v and h’s, the decoder has to decide which patch is most relevant
+    to fill in the chosen location (at location4).
+    The cross entropy loss is applied for this classification task,
+    whereas the encoder and decoder are trained jointly with gradients back-propagated from this loss.
+    """
+    def __init__(self, feature_nets, num_features):
+        super().__init__()
+
+        if len(feature_nets) > 0 or num_features > 0:
+            raise ValueError("PixelDistortion doesn't accept feature networks")
+
+        # resnet (first 3 layers encoder, last decoder)
+        self.pretrained = torchvision.models.resnet18(pretrained=True)
+        self.layers = list(self.pretrained._modules.keys())
+        self.finetune = self.pretrained._modules.pop(self.layers[-1])
+        self.net = nn.Sequential(self.pretrained._modules) # should be first 3 layers
+        self.pretrained = None
+
+        # patch pos embedding
+        self.pos = nn.Linear(9,84)
+
+        self.feature_size = 84
+
+    def patch_processing(self, x):
+        x = self.net(x)
+        return x
+
+    def pos_processing(self, y_pos):
+        return F.relu(self.pos(y_pos))
+
+    def get_features(self, x):
+        # TODO: fix this
+        return x
+
+    # TODO: fix this to work
+    def forward(self, w):
+        x = w[0]
+        y = w[1]
+        y_pos = w[2]
+        allx = []
+        # for each patch, do patch processing + add the positional embedding for that patch
+        for patch in x:
+            with_pos = torch.add(self.patch_processing(patch[0]), self.pos_processing(patch[1])) #TODO: check that adding pos is ok? 99% sure this is right but might as well check
+            allx.append(with_pos)
+        u = torch.stack(allx)
+        # pooling to get vector u
+        u = u.sum(dim=0)  # TODO: change to attention pooling network
+        y_pos = self.pos_processing(y_pos)
+        # add positional embedding of the "chosen" patch to u to get vector v
+        v = torch.add(u, y_pos) # add to have v (patches + pos embedding of missing patch)
+        ally = []
+        # for each "distractor" patch and the chosen patch, do patch processing.
+        # for each of these vectors, dot with v to get similarity.
+        for patch in y:
+            temp = self.patch_processing(patch)
+            print("TEMP SIZE", temp.shape)
+            print("V SIZE", torch.transpose(v, 1, 0).shape)
+            ally.append(torch.diagonal(torch.dot(temp,torch.transpose(v, 1, 0))))
+        # softmax each result to get which patch is correct
+        result = F.softmax(torch.stack(ally), dim=1)
+        return torch.transpose(result, 0, 1)
+
+    def get_feature_size(self):
+        return self.feature_size
+
 class JigsawNet(nn.Module):
     def __init__(self, feature_nets, num_features):
         super().__init__()
