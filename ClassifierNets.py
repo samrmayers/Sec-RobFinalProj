@@ -107,16 +107,18 @@ def make_network(main_task, main_path, feature_nets, training):
         raise ValueError("Feature Network specified without a path")
     task_path_pairs = zip(feature_nets[::2], feature_nets[1::2])
 
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
     nets = []
     num_features = 0
     for task, path in task_path_pairs:
         net = get_network(task)([],0)
 
-        net.load_state_dict(torch.load(path))
+        net.load_state_dict(torch.load(path, map_location=device))
         nets.append(net)
         num_features += net.get_feature_size()
 
     main_net = get_network(main_task)(nets, num_features)
     if not training:
-        main_net.load_state_dict(torch.load(main_path))
+        main_net.load_state_dict(torch.load(main_path, map_location=device))
     return main_net

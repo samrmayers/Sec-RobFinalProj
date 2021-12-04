@@ -214,7 +214,7 @@ class JigsawDataset(Dataset):
 
 
 class AttackDataset(Dataset):
-    def __init__(self, base_dataset, network, attack):
+    def __init__(self, base_dataset, network, attack, batch_size):
         self.base_dataset = base_dataset
 
         self.new_set = []
@@ -236,13 +236,17 @@ class AttackDataset(Dataset):
 
         print("generating adversarial examples...")
 
-        for idx in tqdm.tqdm(range(0, len(self.base_dataset)), total=len(self.base_dataset)):
-            this_pic = torch.clone(self.base_dataset[idx][0]) # new distorted image
-            label = self.base_dataset[idx][1]
+        self.dataloader = torch.utils.data.DataLoader(self.base_dataset, batch_size=batch_size, num_workers=2)
 
-            adv_image = attack_fn(torch.unsqueeze(this_pic, dim=0), torch.tensor([label]))
+        for images, labels in self.dataloader:
+        # for idx in tqdm.tqdm(range(0, len(self.base_dataset)), total=len(self.base_dataset)):
+        #     this_pic = torch.clone(self.base_dataset[idx][0]) # new distorted image
+        #     label = self.base_dataset[idx][1]
 
-            self.new_set.append((adv_image.squeeze(), label))
+            adv_images = attack_fn(images, labels)
+
+            self.new_set.extend(zip(adv_images.tolist(), labels.tolist()))
+            print(len(self.new_set))
 
         # print(classes[self.base_dataset[0][1]])
         # imshow(self.base_dataset[0][0])
@@ -275,11 +279,10 @@ def get_dataloader(dataset_type, train, batch_size, network, attack):
         raise ValueError("Not a valid dataset type")
 
     if not train and attack is not None:
-        dataset = AttackDataset(dataset, network, attack)
+        dataset = AttackDataset(dataset, network, attack, batch_size)
 
     return torch.utils.data.DataLoader(dataset,
                         batch_size=batch_size, shuffle=True, num_workers=2)
 
 
 #get_dataloader("Color", True, 1, None, False)
-
