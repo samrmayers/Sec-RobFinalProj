@@ -203,12 +203,14 @@ class SelfieNetNew(nn.Module):
         self.pretrained = None
 
         # patch pos embedding
-        self.pos = nn.Linear(9,84)
+        self.pos = nn.Linear(9,512)
 
-        self.feature_size = 84
+        self.feature_size = 512
 
     def patch_processing(self, x):
-        x = self.net(x)
+
+        # resize to batch ( x patches ) x 224 x 224
+        x = self.net(x) # output size will be batch x <something> x 512
         return x
 
     def pos_processing(self, y_pos):
@@ -216,11 +218,43 @@ class SelfieNetNew(nn.Module):
 
     def get_features(self, x):
         # TODO: fix this
+
+        # x dims are batch x 3 x 32 x 32
+
+        # ---------- preprocessing steps -----------------
+        # break x into patches batch x 6 x 3 x 10 x 10
+
+        # get corresponding x_pos as batch x 6 x 9
+
+        # remaining patches y as batch x 3 x 3 x 10 x 10
+
+        # get corresponding y_pos as batch x 9
+
+        # ---------- processing steps -----------------
+
+        # run x, y through self.net, batch x patches x 3 x 10 x 10 -> batch x patches x 512 (may need to flatten patches x batch into a pseudo batch and then reverse)
+
+        # run x_pos, y_pos through self.pos_processing, batch x patches x 9 -> batch x patches x 512
+
+        # add x, x_pos
+
+        # torch.sum in the dim = 1 (would eventually be the attention step), batch x 512
+
+        # (ends here for feature net / get_features)
+
+        # ---------- task specific steps -----------------
+
+        # then add y_pos, batch x 512
+
+        # unsqueeze the above in dim 1, replicate 3 times -> batch x 3 x 512
+
+        # dot in dim 2 with y_pos, softmax, -> batch x 3 (cross entropy with target)
+
         return x
 
     # TODO: fix this to work
     def forward(self, w):
-        x = w[0]
+        x = w[0] # batchx6x3x10x10
         y = w[1]
         y_pos = w[2]
         allx = []
@@ -303,3 +337,16 @@ class ColorizerNet(nn.Module):
 
         # https://github.com/emilwallner/Coloring-greyscale-images/blob/master/Alpha-version/alpha_version_notebook.ipynb
 
+        # input is batch x 3 x 32 x 32
+
+        # ------- preprocessing -------------
+
+        # greyscale, batch x 32 x 32
+
+        # ----------- processing ------------
+
+        # pass through network, batch x feature_size
+
+        # --------- task specific -------------
+
+        # reconstruction x upsampling layers, batch x feature_size -> batch x 3 x 32 x 32

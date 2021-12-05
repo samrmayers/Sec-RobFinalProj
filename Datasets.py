@@ -90,8 +90,8 @@ class PatchDataset(Dataset):
             this_pic = torch.clone(self.base_dataset[idx][0])
             label = self.base_dataset[idx][1]
 
-            # pick which indeces will be y and which x
-            indeces = random.sample([n for n in range(0, 9)], k = 3)
+            # pick which indices will be y and which x
+            indices = random.sample([n for n in range(0, 9)], k = 3)
             target = [1, 0, 0]
             random.shuffle(target)
             x = []
@@ -105,8 +105,8 @@ class PatchDataset(Dataset):
                     patch = torch.stack((s, b, g), dim=0)
                     position = [0]*9
                     position[3*r+c] = 1
-                    if 3*r+c in indeces:
-                        if target[indeces.index(3*r+c)]:
+                    if 3*r+c in indices:
+                        if target[indices.index(3*r+c)]:
                             y_pos = torch.Tensor(position) # positional embedding of patch indicated in target vector
                         y.append(patch)
                     else:
@@ -115,7 +115,7 @@ class PatchDataset(Dataset):
             if orig_labels:
                 tup = (this_pic, label)
             else:
-                tup = ([x, y, y_pos], torch.Tensor(target))
+                tup = ([x, y, y_pos], torch.Tensor(target)) # x are the 6 patches + positions, y is 3 other patches, y_pos is 1 x 9 is correct position
             self.new_set.append(tup)
         print("done generating data")
 
