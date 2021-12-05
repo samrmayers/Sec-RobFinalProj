@@ -216,8 +216,13 @@ class JigsawDataset(Dataset):
 class AttackDataset(Dataset):
     def __init__(self, base_dataset, network, attack, batch_size):
         self.base_dataset = base_dataset
+        sample_im, _ = self.base_dataset[0]
+
+        self.new_ims = torch.empty((0, *(sample_im.shape)))
+        self.new_labels = torch.empty((0))
 
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        cpu = torch.device("cpu")
 
         self.network = network.to(device)
 
@@ -242,18 +247,18 @@ class AttackDataset(Dataset):
 
         self.dataloader = torch.utils.data.DataLoader(self.base_dataset, batch_size=batch_size, num_workers=2)
 
-        for data in self.dataloader:
+        for images, labels in self.dataloader:
         # for idx in tqdm.tqdm(range(0, len(self.base_dataset)), total=len(self.base_dataset)):
         #     this_pic = torch.clone(self.base_dataset[idx][0]) # new distorted image
         #     label = self.base_dataset[idx][1]
 
-            images, labels = data[0].to(device), data[1].to(device)
 
+            adv_images = attack_fn(images.to(device), labels.to(device)).to(cpu)
 
-            adv_images = attack_fn(images, labels)
+            self.new_ims.cat((self.new_ims, adv_images), 0)
+            self.new_labels.cat((self.new_labels, labels), 0)
 
-            self.new_set.extend(zip(adv_images.tolist(), labels.tolist()))
-            print(len(self.new_set))
+            print(len(self.new_ims))
 
         # print(classes[self.base_dataset[0][1]])
         # imshow(self.base_dataset[0][0])
@@ -264,10 +269,10 @@ class AttackDataset(Dataset):
         print("done generating adversarial examples")
 
     def __len__(self):
-        return len(self.new_set)
+        return len(self.new_ims)
 
     def __getitem__(self, idx):
-        return self.new_set[idx]
+        return (self.new_ims[idx], self.new_labels[idx])
 
 
 # Add more datasets here as they are made
