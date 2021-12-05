@@ -217,20 +217,24 @@ class AttackDataset(Dataset):
     def __init__(self, base_dataset, network, attack, batch_size):
         self.base_dataset = base_dataset
 
-        self.new_set = []
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+        self.network = network.to(device)
 
         if attack == "FGSM":
-            attack_fn = attacks.FGSM(network, eps=8/255)
+            attack_fn = attacks.FGSM(self.network, eps=8/255)
+        elif attack == "PGD10":
+            attack_fn = attacks.PGD(self.network, eps=8/255, alpha=2/225, steps=10, random_start=True)
         elif attack == "PGD50":
-            attack_fn = attacks.PGD(network, eps=8/255, alpha=2/225, steps=50, random_start=True)
+            attack_fn = attacks.PGD(self.network, eps=8/255, alpha=2/225, steps=50, random_start=True)
         elif attack == "PGD200":
-            attack_fn = attacks.PGD(network, eps=8/255, alpha=2/225, steps=200, random_start=True)
+            attack_fn = attacks.PGD(self.network, eps=8/255, alpha=2/225, steps=200, random_start=True)
         elif attack == "BIM":
-            attack_fn = attacks.BIM(network, eps=8/255, alpha=2/255, steps=50)
+            attack_fn = attacks.BIM(self.network, eps=8/255, alpha=2/255, steps=50)
         elif attack == "AutoAttack":
-            attack_fn = attacks.AutoAttack(network, eps=8/255, n_classes=10, version='standard')
+            attack_fn = attacks.AutoAttack(self.network, eps=8/255, n_classes=10, version='standard')
         elif attack == "CW":
-            attack_fn = attacks.CW(network, c=1, lr=0.01, steps=50, kappa=0)
+            attack_fn = attacks.CW(self.network, c=1, lr=0.01, steps=50, kappa=0)
         else:
             raise ValueError("Not a valid attack type")
 
@@ -238,10 +242,13 @@ class AttackDataset(Dataset):
 
         self.dataloader = torch.utils.data.DataLoader(self.base_dataset, batch_size=batch_size, num_workers=2)
 
-        for images, labels in self.dataloader:
+        for data in self.dataloader:
         # for idx in tqdm.tqdm(range(0, len(self.base_dataset)), total=len(self.base_dataset)):
         #     this_pic = torch.clone(self.base_dataset[idx][0]) # new distorted image
         #     label = self.base_dataset[idx][1]
+
+            images, labels = data[0].to(device), data[1].to(device)
+
 
             adv_images = attack_fn(images, labels)
 
