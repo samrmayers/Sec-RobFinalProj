@@ -350,3 +350,50 @@ class ColorizerNet(nn.Module):
         # --------- task specific -------------
 
         # reconstruction x upsampling layers, batch x feature_size -> batch x 3 x 32 x 32
+
+
+class ContrastiveNet(nn.Module):
+    """
+    This net is used for contrastive learning-eqsue tasks
+
+    get_features: batch x 3 x 32 x 32 -> batch x 512
+
+    forward: batch x 3 x 32 x 32 -> batch x (128 + 10)(two more layers,
+        split to give both a representation for contrastive and cross entropy)
+    """
+    def __init__(self, feature_networks, num_features):
+        super().__init__()
+
+        if len(feature_networks) > 0 or num_features > 0:
+            raise ValueError("ContrastiveNet doesn't accept feature networks")
+
+        self.norm = Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        self.rescale = torchvision.transforms.Resize((224,224))
+
+        self.resnet = resnet18(num_classes=1000, pretrained=True, progress=True)
+
+        self.resnet.fc = Identity()
+
+        self.feature_size = 512
+        self.fc1 = nn.Linear(512, 256)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(256, 10)
+
+    def get_features(self, x):
+        x = self.norm(x)
+        x = self.rescale(x)
+        return self.resnet(x)
+
+    def forward(self, x):
+
+        x = self.get_features(x)
+        x = F.relu(self.fc1(x))
+        z = self.fc2(x)
+        y = self.fc3(x)
+
+        x = torch.cat((z,y), dim=1)
+
+        return x
+
+    def get_feature_size(self):
+        return self.feature_size
