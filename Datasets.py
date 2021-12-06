@@ -95,6 +95,7 @@ class PatchDataset(Dataset):
             target = [1, 0, 0]
             random.shuffle(target)
             x = []
+            x_pos = []
             y = []
             y_pos = []
             for r in range(0, 3):
@@ -110,12 +111,13 @@ class PatchDataset(Dataset):
                             y_pos = torch.Tensor(position) # positional embedding of patch indicated in target vector
                         y.append(patch)
                     else:
-                        x.append((patch, torch.Tensor(position)))
+                        x.append(patch)
+                        x_pos.append(torch.Tensor(position))
 
             if orig_labels:
                 tup = (this_pic, label)
             else:
-                tup = ([x, y, y_pos], torch.Tensor(target)) # x are the 6 patches + positions, y is 3 other patches, y_pos is 1 x 9 is correct position
+                tup = ([torch.stack(x), torch.stack(x_pos), torch.stack(y), y_pos], torch.Tensor(target)) # x are the 6 patches + positions, y is 3 other patches, y_pos is 1 x 9 is correct position
             self.new_set.append(tup)
         print("done generating data")
 
