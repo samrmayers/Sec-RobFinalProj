@@ -269,7 +269,6 @@ class SelfieNetNew(nn.Module):
         newpos = torch.stack(x_pos)
         return self.x_processing(new, newpos)
 
-    # TODO: fix this to work
     def forward(self, w):
         # x dims are batch x 3 x 32 x 32
 
@@ -360,6 +359,88 @@ class JigsawNet(nn.Module):
 
     def get_feature_size(self):
         return self.feature_size
+
+class JigsawNetNew(nn.Module):
+    def __init__(self, feature_nets, num_features):
+        super().__init__()
+
+        if len(feature_nets) > 0 or num_features > 0:
+            raise ValueError("PixelDistortion doesn't accept feature networks")
+
+        self.rescale = torchvision.transforms.Resize((224, 224))
+        self.norm = Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+
+        # resnet (first 3 layers encoder, last decoder)
+        self.pretrained = torchvision.models.resnet18(pretrained=True)
+        self.layers = list(self.pretrained._modules.keys())
+        self.finetune = self.pretrained._modules.pop(self.layers[-1])
+        self.net = nn.Sequential(self.pretrained._modules) # should be first 3 layers
+        self.pretrained = None
+
+        # task
+        self.fc = nn.Linear(512, 64)
+
+        self.feature_size = 512
+
+    def patch_processing(self, x):
+        # resize to batch ( x patches ) x 224 x 224
+        x = self.rescale(x)
+        x = self.net(x) # output size will be batch x <something> x 512
+        return x
+
+    def x_processing(self, x): # x is tuples for each patch, patch[0] is patch, patch[1] is pos
+
+        # run x through self.net, batch x patches x 3 x 10 x 10 -> batch x patches x 512 (may need to flatten patches x batch into a pseudo batch and then reverse)
+        allx = []
+        for i in range(x.shape[1]):
+            patch = x[:, i, ...]
+            temp = self.patch_processing(patch)
+            allx.append(temp)
+
+        # add x, x_pos
+        allx = torch.stack(allx, dim=1)
+        u = allx.squeeze()
+
+        # torch.sum in the dim = 1 (would eventually be the attention step), batch x 512
+        u = u.sum(dim=1)
+        return u
+
+    def get_features(self, x):
+
+        # break image into 9 patches
+        newx = []
+        for pic in x:
+            this_pic = torch.clone(pic)
+            for r in range(0, 3):
+                for c in range(0, 3):
+                    s = this_pic[0][r * 10 + r:r * 10 + 10 + r, c * 10 + c:c * 10 + 10 + c]
+                    b = this_pic[1][r * 10 + r:r * 10 + 10 + r, c * 10 + c:c * 10 + 10 + c]
+                    g = this_pic[2][r * 10 + r:r * 10 + 10 + r, c * 10 + c:c * 10 + 10 + c]
+                    patch = torch.stack((s, b, g), dim=0)
+                    newx.append(patch)
+
+        # put all 9 patches w/ positions through x_processing
+        new = torch.stack(newx) # should be batches x patches x 3 x 10 x 10
+        return self.x_processing(new)
+
+    def forward(self, x):
+        # x dims are batch x 3 x 32 x 32
+
+        # ---------- processing steps -----------------
+
+        u = self.x_processing(x)
+
+        # (ends here for feature net / get_features)
+
+        # ---------- task specific steps -----------------
+
+        result = F.softmax(self.fc(u), dim=1)
+        return result
+
+    def get_feature_size(self):
+        return self.feature_size
+
+
 
 class ColorizerNet(nn.Module):
     def __init__(self, feature_nets, num_features):

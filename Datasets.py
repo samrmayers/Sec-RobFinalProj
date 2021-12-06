@@ -165,7 +165,7 @@ class JigsawDataset(Dataset):
         self.base_dataset = BaseDataset(train)
         perms = list(set(itertools.permutations([0,1,2,3,4,5,6,7,8])))
         random.shuffle(perms)
-        self.permutations = perms[:64] # these are the possible permutations
+        self.permutations = perms[:64] # these are the possible permutations TODO: play with number of permutations we use
         self.new_set = []
 
         for idx in tqdm.tqdm(range(0, len(self.base_dataset)), total=len(self.base_dataset)):
