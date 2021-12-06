@@ -95,6 +95,7 @@ class PatchDataset(Dataset):
             target = [1, 0, 0]
             random.shuffle(target)
             x = []
+            x_pos = []
             y = []
             y_pos = []
             for r in range(0, 3):
@@ -110,12 +111,13 @@ class PatchDataset(Dataset):
                             y_pos = torch.Tensor(position) # positional embedding of patch indicated in target vector
                         y.append(patch)
                     else:
-                        x.append((patch, torch.Tensor(position)))
+                        x.append(patch)
+                        x_pos.append(torch.Tensor(position))
 
             if orig_labels:
                 tup = (this_pic, label)
             else:
-                tup = ([x, y, y_pos], torch.Tensor(target)) # x are the 6 patches + positions, y is 3 other patches, y_pos is 1 x 9 is correct position
+                tup = ([torch.stack(x), torch.stack(x_pos), torch.stack(y), y_pos], torch.Tensor(target)) # x are the 6 patches + positions, y is 3 other patches, y_pos is 1 x 9 is correct position
             self.new_set.append(tup)
         print("done generating data")
 
@@ -163,7 +165,7 @@ class JigsawDataset(Dataset):
         self.base_dataset = BaseDataset(train)
         perms = list(set(itertools.permutations([0,1,2,3,4,5,6,7,8])))
         random.shuffle(perms)
-        self.permutations = perms[:64] # these are the possible permutations
+        self.permutations = perms[:64] # these are the possible permutations TODO: play with number of permutations we use
         self.new_set = []
 
         for idx in tqdm.tqdm(range(0, len(self.base_dataset)), total=len(self.base_dataset)):
