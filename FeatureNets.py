@@ -451,28 +451,23 @@ class ColorizerNet(nn.Module):
 
         self.norm = Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 
-        self.conv1 = nn.Conv2d(3, 6, 5)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.conv1_bn = nn.BatchNorm2d(6)
-        self.conv2 = nn.Conv2d(6, 16, 2)
-        self.conv2_bn = nn.BatchNorm2d(16)
-        self.fc1 = nn.Linear(576, 120)
-        self.fc2 = nn.Linear(120, 512)
+        self.resnet = resnet18(num_classes=1000, pretrained=True, progress=True)
+        self.resnet.fc = Identity()
 
         self.model = nn.Sequential(
             nn.ConvTranspose2d(8, 512, 4, 2, 1),
+            nn.BatchNorm2d(512),
             nn.ReLU(),
             nn.ConvTranspose2d(512, 256, 4, 2),
+            nn.BatchNorm2d(256),
             nn.ReLU(),
             nn.ConvTranspose2d(256, 128, 4, 2),
+            nn.BatchNorm2d(128),
             nn.ReLU(),
             nn.ConvTranspose2d(128, 64, 4, 2),
-            nn.ReLU(),
-            nn.Conv2d(64, 32, 4, 2, 1),
-            nn.ReLU(),
-            nn.Conv2d(32, 16, 4, 2, 1),
-            nn.ReLU(),
-            nn.Conv2d(16, 3, 4, 1),
+            nn.BatchNorm2d(64),
+            nn.ConvTranspose2d(64, 3, 4, 1),
+            nn.Upsample((32, 32)),
             nn.Tanh(),
         )
 
@@ -494,11 +489,8 @@ class ColorizerNet(nn.Module):
 
     def get_features(self, x):
         x = self.norm(x)
-        x = self.conv1_bn(self.pool(F.relu(self.conv1(x))))
-        x = self.conv2_bn(self.pool(F.relu(self.conv2(x))))
-        x = torch.flatten(x, 1)  # flatten all dimensions except batch
-        x = F.relu(self.fc1(x))
-        return F.relu(self.fc2(x))
+        x = self.rescale(x)
+        return self.resnet(x)
 
     def forward(self, x):
         x = self.get_features(x)
