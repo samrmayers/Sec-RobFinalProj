@@ -372,10 +372,8 @@ class JigsawNetNew(nn.Module):
         self.norm = Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 
         # resnet (first 3 layers encoder, last decoder)
-        self.pretrained = torchvision.models.resnet18(pretrained=True)
-        self.layers = list(self.pretrained._modules.keys())
-        self.finetune = self.pretrained._modules.pop(self.layers[-1])
-        self.net = nn.Sequential(self.pretrained._modules) # should be first 3 layers
+        self.net = torchvision.models.resnet18(pretrained=True)
+        self.net.fc = Identity()
 
         self.pretrained = None
 
