@@ -399,11 +399,11 @@ class JigsawNetNew(nn.Module):
 
         # add x, x_pos
         allx = torch.stack(allx, dim=1)
-        u = allx.squeeze()
+        allx = allx.squeeze()
 
         # torch.sum in the dim = 1 (would eventually be the attention step), batch x 512
-        u = u.sum(dim=1)
-        return u
+        allx = allx.sum(dim=1)
+        return allx
 
     def get_features(self, x):
 
@@ -420,27 +420,25 @@ class JigsawNetNew(nn.Module):
                     newx.append(patch)
 
         # put all 9 patches w/ positions through x_processing
-        new = torch.stack(newx) # should be batches x patches x 3 x 10 x 10
-        return self.x_processing(new)
+        newx = torch.stack(newx) # should be batches x patches x 3 x 10 x 10
+        return self.x_processing(newx)
 
     def forward(self, x):
         # x dims are batch x 3 x 32 x 32
 
         # ---------- processing steps -----------------
 
-        u = self.x_processing(x)
+        x = self.x_processing(x)
 
         # (ends here for feature net / get_features)
 
         # ---------- task specific steps -----------------
 
-        result = F.softmax(self.fc(u), dim=1)
+        result = F.softmax(self.fc(x), dim=1)
         return result
 
     def get_feature_size(self):
         return self.feature_size
-
-
 
 class ColorizerNet(nn.Module):
     def __init__(self, feature_nets, num_features):
