@@ -86,7 +86,7 @@ class PatchDataset(Dataset):
 
         self.new_set = []
 
-        for idx in tqdm.tqdm(range(0, len(self.base_dataset)-49990), total=len(self.base_dataset)-49990):
+        for idx in tqdm.tqdm(range(0, len(self.base_dataset)), total=len(self.base_dataset)):
             this_pic = torch.clone(self.base_dataset[idx][0])
             label = self.base_dataset[idx][1]
 
