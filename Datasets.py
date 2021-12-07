@@ -86,7 +86,7 @@ class PatchDataset(Dataset):
 
         self.new_set = []
 
-        for idx in tqdm.tqdm(range(0, len(self.base_dataset)), total=len(self.base_dataset)):
+        for idx in tqdm.tqdm(range(0, len(self.base_dataset)-49990), total=len(self.base_dataset)-49990):
             this_pic = torch.clone(self.base_dataset[idx][0])
             label = self.base_dataset[idx][1]
 
@@ -95,6 +95,7 @@ class PatchDataset(Dataset):
             target = [1, 0, 0]
             random.shuffle(target)
             x = []
+            x_pos = []
             y = []
             y_pos = []
             for r in range(0, 3):
@@ -110,12 +111,13 @@ class PatchDataset(Dataset):
                             y_pos = torch.Tensor(position) # positional embedding of patch indicated in target vector
                         y.append(patch)
                     else:
-                        x.append((patch, torch.Tensor(position)))
+                        x.append(patch)
+                        x_pos.append(torch.Tensor(position))
 
             if orig_labels:
                 tup = (this_pic, label)
             else:
-                tup = ([x, y, y_pos], torch.Tensor(target)) # x are the 6 patches + positions, y is 3 other patches, y_pos is 1 x 9 is correct position
+                tup = ([torch.stack(x, dim=0), torch.stack(x_pos, dim=0), torch.stack(y, dim=0), y_pos], torch.Tensor(target)) # x are the 6 patches + positions, y is 3 other patches, y_pos is 1 x 9 is correct position
             self.new_set.append(tup)
         print("done generating data")
 
