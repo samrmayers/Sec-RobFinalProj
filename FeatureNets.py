@@ -375,8 +375,6 @@ class JigsawNetNew(nn.Module):
         self.net = torchvision.models.resnet18(pretrained=True)
         self.net.fc = Identity()
 
-        self.pretrained = None
-
         # task
         self.fc = nn.Linear(512, 64)
 
@@ -397,14 +395,9 @@ class JigsawNetNew(nn.Module):
 
         # run x through self.net, batch x patches x 3 x 10 x 10 -> batch x patches x 512 (may need to flatten patches x batch into a pseudo batch and then reverse)       x = x.flatten((0,1))
         x = torch.flatten(x, 0,1)
-
-        x = self.patch_processing(x).squeeze()
-
-        allx = x.unflatten(0, shape)
-
+        x = self.patch_processing(x).squeeze().unflatten(0, shape).sum(dim=1)
         # torch.sum in the dim = 1 (would eventually be the attention step), batch x 512
-        allx = allx.sum(dim=1)
-        return allx
+        return x
 
     def get_features(self, x):
 
@@ -435,8 +428,8 @@ class JigsawNetNew(nn.Module):
 
         # ---------- task specific steps -----------------
 
-        result = F.softmax(self.fc(x), dim=1)
-        return result
+        x = F.softmax(self.fc(x), dim=1)
+        return x
 
     def get_feature_size(self):
         return self.feature_size
