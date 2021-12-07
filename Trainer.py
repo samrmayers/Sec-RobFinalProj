@@ -21,6 +21,7 @@ def train(network, trainloader, main_task, main_path, epochs, scheduler_period):
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     network = network.to(device)
+    #print(next(network.parameters()).is_cuda)
 
     if scheduler_period > 0:
         sched = optim.lr_scheduler.StepLR(optimizer,scheduler_period)
@@ -30,6 +31,9 @@ def train(network, trainloader, main_task, main_path, epochs, scheduler_period):
         print("EPOCH: ", epoch)
         for i, data in enumerate(trainloader, 0):
             inputs, labels = data[0].to(device), data[1].to(device)
+            #if i == 0:
+              #print(inputs.is_cuda)
+              #print(labels.is_cuda)
             #inputs, labels = data[0], data[1] #for testing on cpu
             optimizer.zero_grad()
 
@@ -42,7 +46,7 @@ def train(network, trainloader, main_task, main_path, epochs, scheduler_period):
                 sched.step()
 
             running_loss += loss.item()
-            if i % 1000 == 999:  # print every 1000 mini-batches
+            if i % 90 == 89:  # print every 90 mini-batches
                 print('[%d, %5d] loss: %.3f' %
                       (epoch + 1, i + 1, running_loss / 1000))
                 running_loss = 0.0
