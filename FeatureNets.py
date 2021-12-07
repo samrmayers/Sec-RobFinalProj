@@ -376,6 +376,7 @@ class JigsawNetNew(nn.Module):
         self.layers = list(self.pretrained._modules.keys())
         self.finetune = self.pretrained._modules.pop(self.layers[-1])
         self.net = nn.Sequential(self.pretrained._modules) # should be first 3 layers
+
         self.pretrained = None
 
         # task
@@ -385,23 +386,23 @@ class JigsawNetNew(nn.Module):
 
     def patch_processing(self, x):
         # resize to batch ( x patches ) x 224 x 224
+
         x = self.norm(x)
         x = self.rescale(x)
         x = self.net(x) # output size will be batch x <something> x 512
+
         return x
 
-    def x_processing(self, x): # x is tuples for each patch, patch[0] is patch, patch[1] is pos
+    def x_processing(self, x):
+        # x is tuples for each patch, patch[0] is patch, patch[1] is pos
+        shape = x.shape[0:2]
 
-        # run x through self.net, batch x patches x 3 x 10 x 10 -> batch x patches x 512 (may need to flatten patches x batch into a pseudo batch and then reverse)
-        allx = []
-        for i in range(x.shape[1]):
-            patch = x[:, i, ...]
-            temp = self.patch_processing(patch)
-            allx.append(temp)
+        # run x through self.net, batch x patches x 3 x 10 x 10 -> batch x patches x 512 (may need to flatten patches x batch into a pseudo batch and then reverse)       x = x.flatten((0,1))
+        x = torch.flatten(x, 0,1)
 
-        # add x, x_pos
-        allx = torch.stack(allx, dim=1)
-        allx = allx.squeeze()
+        x = self.patch_processing(x).squeeze()
+
+        allx = x.unflatten(0, shape)
 
         # torch.sum in the dim = 1 (would eventually be the attention step), batch x 512
         allx = allx.sum(dim=1)
@@ -422,7 +423,7 @@ class JigsawNetNew(nn.Module):
                     newx.append(patch)
 
         # put all 9 patches w/ positions through x_processing
-        newx = torch.stack(newx) # should be batches x patches x 3 x 10 x 10
+        newx = torch.stack(newx, dim=1) # should be batches x patches x 3 x 10 x 10
         return self.x_processing(newx)
 
     def forward(self, x):
