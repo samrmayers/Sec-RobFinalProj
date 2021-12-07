@@ -213,6 +213,7 @@ class SelfieNetNew(nn.Module):
 
     def patch_processing(self, x):
         # resize to batch ( x patches ) x 224 x 224
+        x = self.norm(x)
         x = self.rescale(x)
         x = self.net(x) # output size will be batch x <something> x 512
         return x
@@ -384,6 +385,7 @@ class JigsawNetNew(nn.Module):
 
     def patch_processing(self, x):
         # resize to batch ( x patches ) x 224 x 224
+        x = self.norm(x)
         x = self.rescale(x)
         x = self.net(x) # output size will be batch x <something> x 512
         return x
@@ -449,7 +451,32 @@ class ColorizerNet(nn.Module):
 
         self.norm = Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 
-        # https://github.com/emilwallner/Coloring-greyscale-images/blob/master/Alpha-version/alpha_version_notebook.ipynb
+        self.conv1 = nn.Conv2d(3, 6, 5)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.conv1_bn = nn.BatchNorm2d(6)
+        self.conv2 = nn.Conv2d(6, 16, 2)
+        self.conv2_bn = nn.BatchNorm2d(16)
+        self.fc1 = nn.Linear(576, 120)
+        self.fc2 = nn.Linear(120, 512)
+
+        self.model = nn.Sequential(
+            nn.ConvTranspose2d(8, 512, 4, 2, 1),
+            nn.ReLU(),
+            nn.ConvTranspose2d(512, 256, 4, 2),
+            nn.ReLU(),
+            nn.ConvTranspose2d(256, 128, 4, 2),
+            nn.ReLU(),
+            nn.ConvTranspose2d(128, 64, 4, 2),
+            nn.ReLU(),
+            nn.Conv2d(64, 32, 4, 2, 1),
+            nn.ReLU(),
+            nn.Conv2d(32, 16, 4, 2, 1),
+            nn.ReLU(),
+            nn.Conv2d(16, 3, 4, 1),
+            nn.Tanh(),
+        )
+
+        self.feature_size = 512
 
         # input is batch x 3 x 32 x 32
 
@@ -465,6 +492,24 @@ class ColorizerNet(nn.Module):
 
         # reconstruction x upsampling layers, batch x feature_size -> batch x 3 x 32 x 32
 
+    def get_features(self, x):
+        x = self.norm(x)
+        x = self.conv1_bn(self.pool(F.relu(self.conv1(x))))
+        x = self.conv2_bn(self.pool(F.relu(self.conv2(x))))
+        x = torch.flatten(x, 1)  # flatten all dimensions except batch
+        x = F.relu(self.fc1(x))
+        return F.relu(self.fc2(x))
+
+    def forward(self, x):
+        x = self.get_features(x)
+        x = x.unsqueeze(-1)
+        x = x.unsqueeze(-1)
+        x = torch.reshape(x,(x.shape[0], 8, 8, 8))
+        x = self.model(x)
+        return x
+
+    def get_feature_size(self):
+        return self.feature_size
 
 class ContrastiveNet(nn.Module):
     """
