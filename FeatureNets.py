@@ -266,8 +266,8 @@ class SelfieNetNew(nn.Module):
                     x_pos.append(torch.Tensor(position))
 
         # put all 9 patches w/ positions through x_processing
-        new = torch.stack(newx) # should be batches x patches x 3 x 10 x 10
-        newpos = torch.stack(x_pos)
+        new = torch.stack(newx, dim = 1) # should be batches x patches x 3 x 10 x 10
+        newpos = torch.stack(x_pos, dim = 1)
         return self.x_processing(new, newpos)
 
     def forward(self, w):
