@@ -99,6 +99,10 @@ def get_network(task):
         return ResNet50
     elif task == "AggNet":
         return AggNet
+    elif task == "Contrastive":
+        return ContrastiveNet
+    elif task == "JointContrastive":
+        return ContrastiveNet
     else:
         raise ValueError(f"Invalid network type {task}")
 
