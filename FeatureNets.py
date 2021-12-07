@@ -450,6 +450,7 @@ class ColorizerNet(nn.Module):
             raise ValueError("PixelDistortion doesn't accept feature networks")
 
         self.norm = Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        self.rescale = torchvision.transforms.Resize((224, 224))
 
         self.resnet = resnet18(num_classes=1000, pretrained=True, progress=True)
         self.resnet.fc = Identity()
