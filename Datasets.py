@@ -95,6 +95,7 @@ class PatchDataset(Dataset):
             target = [1, 0, 0]
             random.shuffle(target)
             x = []
+            x_pos = []
             y = []
             y_pos = []
             for r in range(0, 3):
@@ -110,12 +111,13 @@ class PatchDataset(Dataset):
                             y_pos = torch.Tensor(position) # positional embedding of patch indicated in target vector
                         y.append(patch)
                     else:
-                        x.append((patch, torch.Tensor(position)))
+                        x.append(patch)
+                        x_pos.append(torch.Tensor(position))
 
             if orig_labels:
                 tup = (this_pic, label)
             else:
-                tup = ([x, y, y_pos], torch.Tensor(target)) # x are the 6 patches + positions, y is 3 other patches, y_pos is 1 x 9 is correct position
+                tup = ([torch.stack(x, dim=0), torch.stack(x_pos, dim=0), torch.stack(y, dim=0), y_pos], torch.Tensor(target)) # x are the 6 patches + positions, y is 3 other patches, y_pos is 1 x 9 is correct position
             self.new_set.append(tup)
         print("done generating data")
 
@@ -161,9 +163,7 @@ class JigsawDataset(Dataset):
     """
     def __init__(self, train, orig_labels=False):
         self.base_dataset = BaseDataset(train)
-        perms = list(set(itertools.permutations([0,1,2,3,4,5,6,7,8])))
-        random.shuffle(perms)
-        self.permutations = perms[:64] # these are the possible permutations
+        self.permutations = list(set(itertools.permutations([0,1,2,3])))
         self.new_set = []
 
         for idx in tqdm.tqdm(range(0, len(self.base_dataset)), total=len(self.base_dataset)):
@@ -176,18 +176,17 @@ class JigsawDataset(Dataset):
 
             # generate patches
             patches = []
-            for r in range(0,3):
-                for c in range(0,3):
-                    s = this_pic[0][r*10+r:r*10+10+r,c*10+c:c*10+10+c]
-                    b = this_pic[1][r*10+r:r*10+10+r,c*10+c:c*10+10+c]
-                    g = this_pic[2][r*10+r:r*10+10+r,c*10+c:c*10+10+c]
+            for r in range(0,2):
+                for c in range(0,2):
+                    s = this_pic[0][r*15+r:r*15+15+r,c*15+c:c*15+15+c]
+                    b = this_pic[1][r*15+r:r*15+15+r,c*15+c:c*15+15+c]
+                    g = this_pic[2][r*15+r:r*15+15+r,c*15+c:c*15+15+c]
                     patch = torch.stack((s, b, g), dim=0)
                     patches.append(patch)
 
             input = []
             for i in perm:
                 input.append(patches[i])
-
 
             if orig_labels:
                 tup = (this_pic, label)
@@ -354,6 +353,8 @@ def get_dataloader(dataset_type, train, batch_size, network, attack):
     elif dataset_type == "Jigsaw":
         dataset = JigsawDataset(train)
     elif dataset_type == "Colorizer":
+        dataset = ColorDataset(train)
+    elif dataset_type == "ColorizerNew":
         dataset = ColorDataset(train)
     elif dataset_type == "Contrastive":
         dataset = ContrastiveDataset(train)
