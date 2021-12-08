@@ -376,7 +376,7 @@ class JigsawNetNew(nn.Module):
         self.net.fc = Identity()
 
         # task
-        self.fc = nn.Linear(512, 64)
+        self.fc = nn.Linear(512, 24)
 
         self.feature_size = 512
 
