@@ -1,4 +1,4 @@
-from Util import Normalize
+from Util import Normalize, gray
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
@@ -528,6 +528,7 @@ class ColorizerNetNew(nn.Module):
         self.feature_size = 512
 
     def get_features(self, x):
+        x = gray(x)
         x = self.norm(x)
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
