@@ -66,6 +66,8 @@ def get_loss(task):
         return nn.CrossEntropyLoss()
     elif task == "Colorizer":
         return nn.MSELoss()
+    elif task == "ColorizerNew":
+        return nn.MSELoss()
     elif task == "ResNet18":
         return nn.CrossEntropyLoss()
     elif task == "ResNet50":

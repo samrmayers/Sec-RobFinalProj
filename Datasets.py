@@ -357,6 +357,8 @@ def get_dataloader(dataset_type, train, batch_size, network, attack):
         dataset = JigsawDataset(train)
     elif dataset_type == "Colorizer":
         dataset = ColorDataset(train)
+    elif dataset_type == "ColorizerNew":
+        dataset = ColorDataset(train)
     elif dataset_type == "Contrastive":
         dataset = ContrastiveDataset(train)
     elif dataset_type == "AdvContrastive":
