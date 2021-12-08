@@ -483,8 +483,8 @@ class ColorizerNet(nn.Module):
         # reconstruction x upsampling layers, batch x feature_size -> batch x 3 x 32 x 32
 
     def get_features(self, x):
-        x = self.gray(x)
         x = self.norm(x)
+        x = self.gray(x)
         x = self.rescale(x)
         return self.resnet(x)
 
