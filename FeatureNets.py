@@ -1,4 +1,4 @@
-from Util import Normalize
+from Util import Normalize, gray
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
@@ -376,7 +376,7 @@ class JigsawNetNew(nn.Module):
         self.net.fc = Identity()
 
         # task
-        self.fc = nn.Linear(512, 64)
+        self.fc = nn.Linear(512, 24)
 
         self.feature_size = 512
 
@@ -471,6 +471,8 @@ class ColorizerNet(nn.Module):
 
         self.feature_size = 512
 
+        self.gray = torchvision.transforms.Grayscale(num_output_channels=3)
+
         # input is batch x 3 x 32 x 32
 
         # ------- preprocessing -------------
@@ -487,6 +489,7 @@ class ColorizerNet(nn.Module):
 
     def get_features(self, x):
         x = self.norm(x)
+        x = self.gray(x)
         x = self.rescale(x)
         return self.resnet(x)
 

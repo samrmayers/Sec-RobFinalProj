@@ -163,9 +163,7 @@ class JigsawDataset(Dataset):
     """
     def __init__(self, train, orig_labels=False):
         self.base_dataset = BaseDataset(train)
-        perms = list(set(itertools.permutations([0,1,2,3,4,5,6,7,8])))
-        random.shuffle(perms)
-        self.permutations = perms[:64] # these are the possible permutations
+        self.permutations = list(set(itertools.permutations([0,1,2,3])))
         self.new_set = []
 
         for idx in tqdm.tqdm(range(0, len(self.base_dataset)), total=len(self.base_dataset)):
@@ -178,18 +176,17 @@ class JigsawDataset(Dataset):
 
             # generate patches
             patches = []
-            for r in range(0,3):
-                for c in range(0,3):
-                    s = this_pic[0][r*10+r:r*10+10+r,c*10+c:c*10+10+c]
-                    b = this_pic[1][r*10+r:r*10+10+r,c*10+c:c*10+10+c]
-                    g = this_pic[2][r*10+r:r*10+10+r,c*10+c:c*10+10+c]
+            for r in range(0,2):
+                for c in range(0,2):
+                    s = this_pic[0][r*15+r:r*15+15+r,c*15+c:c*15+15+c]
+                    b = this_pic[1][r*15+r:r*15+15+r,c*15+c:c*15+15+c]
+                    g = this_pic[2][r*15+r:r*15+15+r,c*15+c:c*15+15+c]
                     patch = torch.stack((s, b, g), dim=0)
                     patches.append(patch)
 
             input = []
             for i in perm:
                 input.append(patches[i])
-
 
             if orig_labels:
                 tup = (this_pic, label)
