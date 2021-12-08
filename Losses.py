@@ -52,7 +52,10 @@ class ContrastiveJointLoss(nn.Module):
 
     def forward(self, output, target):
         last_features = output[:, 128:138]
-        return self.contrastive_loss(output, target) + self.weight*self.cross_entropy_loss(last_features, target)
+
+        loss_c = self.contrastive_loss(output, target)
+        loss_l = self.cross_entropy_loss(last_features, target)
+        return loss_c + self.weight*loss_l
 
 
 def get_loss(task):
@@ -77,6 +80,6 @@ def get_loss(task):
     elif task == "Contrastive":
         return SupervisedContrastiveLoss()
     elif task == "JointContrastive":
-        return ContrastiveJointLoss()
+        return ContrastiveJointLoss(weight=20)
     else:
         raise ValueError("No loss specified for this task")
