@@ -60,8 +60,8 @@ class ResNet50(nn.Module):
 
         self.resnet.fc = Identity()
 
-        self.feature_size = 4096
-        self.fc = nn.Linear(4096, 10)
+        self.feature_size = 2048
+        self.fc = nn.Linear(2048, 10)
 
     def get_features(self, x):
         x = self.norm(x)
