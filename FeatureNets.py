@@ -466,6 +466,8 @@ class ColorizerNet(nn.Module):
 
         self.feature_size = 512
 
+        self.gray = torchvision.transforms.Grayscale(num_output_channels=3)
+
         # input is batch x 3 x 32 x 32
 
         # ------- preprocessing -------------
@@ -481,6 +483,7 @@ class ColorizerNet(nn.Module):
         # reconstruction x upsampling layers, batch x feature_size -> batch x 3 x 32 x 32
 
     def get_features(self, x):
+        x = self.gray(x)
         x = self.norm(x)
         x = self.rescale(x)
         return self.resnet(x)
@@ -524,13 +527,10 @@ class ColorizerNetNew(nn.Module):
         #upsample
         self.upsamplefinal = nn.Upsample((32, 32))
 
-        self.gray = torchvision.transforms.Grayscale(num_output_channels=3)
-
         self.avg = nn.AvgPool2d(4)
         self.feature_size = 512
 
     def get_features(self, x):
-        x = self.gray(x)
         x = self.norm(x)
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
