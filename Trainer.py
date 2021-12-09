@@ -30,7 +30,13 @@ def train(network, trainloader, main_task, main_path, epochs, scheduler_period):
         running_loss = 0.0
         print("EPOCH: ", epoch)
         for i, data in enumerate(trainloader, 0):
-            inputs, labels = data[0].to(device), data[1].to(device)
+            if main_task == "Jigsaw":
+                patches = data[0][0].to(device)
+                pos = data[0][1].to(device)
+                labels = data[1].to(device)
+                inputs = (patches, pos)
+            else:
+                inputs, labels = data[0].to(device), data[1].to(device)
             #if i == 0:
               #print(inputs.is_cuda)
               #print(labels.is_cuda)
