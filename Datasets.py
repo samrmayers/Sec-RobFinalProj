@@ -176,6 +176,7 @@ class JigsawDataset(Dataset):
 
             # generate patches
             patches = []
+            pos = []
             for r in range(0,2):
                 for c in range(0,2):
                     s = this_pic[0][r*15+r:r*15+15+r,c*15+c:c*15+15+c]
@@ -183,6 +184,9 @@ class JigsawDataset(Dataset):
                     g = this_pic[2][r*15+r:r*15+15+r,c*15+c:c*15+15+c]
                     patch = torch.stack((s, b, g), dim=0)
                     patches.append(patch)
+                    position = [0] * 4
+                    position[2 * r + c] = 1
+                    pos.append(torch.Tensor(position))
 
             input = []
             for i in perm:
@@ -191,7 +195,7 @@ class JigsawDataset(Dataset):
             if orig_labels:
                 tup = (this_pic, label)
             else:
-                tup = (torch.stack(input), torch.Tensor(target))
+                tup = ((torch.stack(input), torch.stack(pos)), torch.Tensor(target))
             self.new_set.append(tup)
         print("done generating data")
 

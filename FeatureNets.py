@@ -376,9 +376,12 @@ class JigsawNetNew(nn.Module):
         self.net.fc = Identity()
 
         # task
-        self.fc = nn.Linear(512, 24)
+        self.fc = nn.Linear(2048, 24)
 
-        self.feature_size = 512
+        # patch pos embedding
+        self.pos = nn.Linear(4, 512)
+
+        self.feature_size = 2048
 
     def patch_processing(self, x):
         # resize to batch ( x patches ) x 224 x 224
@@ -389,8 +392,13 @@ class JigsawNetNew(nn.Module):
 
         return x
 
+    def pos_processing(self, y_pos):
+        return F.relu(self.pos(y_pos))
+
     def x_processing(self, x):
         # x is tuples for each patch, patch[0] is patch, patch[1] is pos
+        pos = x[1] # pos embeddings
+        x = x[0] # patches
         shape = x.shape[0:2]
 
         # run x through self.net, batch x patches x 3 x 10 x 10 -> batch x patches x 512 (may need to flatten patches x batch into a pseudo batch and then reverse)       x = x.flatten((0,1))
@@ -399,28 +407,36 @@ class JigsawNetNew(nn.Module):
         x = self.patch_processing(x).squeeze()
 
         allx = x.unflatten(0, shape)
+        pos = self.pos_processing(pos)
+        allx = torch.add(allx, pos)
 
+        # should be batch x patch x 512 --> batch x (patchx512)
+        allx = torch.reshape(allx, (shape[0], self.feature_size))
         # torch.sum in the dim = 1 (would eventually be the attention step), batch x 512
-        allx = allx.sum(dim=1)
+        #allx = allx.sum(dim=1)
         return allx
 
     def get_features(self, x):
 
-        # break image into 9 patches
+        # break image into 4 patches
         newx = []
+        pos = []
         for pic in x:
             this_pic = torch.clone(pic)
-            for r in range(0, 3):
-                for c in range(0, 3):
-                    s = this_pic[0][r * 10 + r:r * 10 + 10 + r, c * 10 + c:c * 10 + 10 + c]
-                    b = this_pic[1][r * 10 + r:r * 10 + 10 + r, c * 10 + c:c * 10 + 10 + c]
-                    g = this_pic[2][r * 10 + r:r * 10 + 10 + r, c * 10 + c:c * 10 + 10 + c]
+            for r in range(0, 2):
+                for c in range(0, 2):
+                    s = this_pic[0][r * 15 + r:r * 15 + 15 + r, c * 15 + c:c * 15 + 15 + c]
+                    b = this_pic[1][r * 15 + r:r * 15 + 15 + r, c * 15 + c:c * 15 + 15 + c]
+                    g = this_pic[2][r * 15 + r:r * 15 + 15 + r, c * 15 + c:c * 15 + 15 + c]
                     patch = torch.stack((s, b, g), dim=0)
                     newx.append(patch)
+                    position = [0] * 4
+                    position[2 * r + c] = 1
+                    pos.append(torch.Tensor(position))
 
         # put all 9 patches w/ positions through x_processing
         newx = torch.stack(newx, dim=1) # should be batches x patches x 3 x 10 x 10
-        return self.x_processing(newx)
+        return self.x_processing((newx,torch.stack(pos, dim=1)))
 
     def forward(self, x):
         # x dims are batch x 3 x 32 x 32
