@@ -60,8 +60,8 @@ class ResNet50(nn.Module):
 
         self.resnet.fc = Identity()
 
-        self.feature_size = 4096
-        self.fc = nn.Linear(4096, 10)
+        self.feature_size = 2048
+        self.fc = nn.Linear(2048, 10)
 
     def get_features(self, x):
         x = self.norm(x)
@@ -395,9 +395,14 @@ class JigsawNetNew(nn.Module):
 
         # run x through self.net, batch x patches x 3 x 10 x 10 -> batch x patches x 512 (may need to flatten patches x batch into a pseudo batch and then reverse)       x = x.flatten((0,1))
         x = torch.flatten(x, 0,1)
-        x = self.patch_processing(x).squeeze().unflatten(0, shape).sum(dim=1)
+
+        x = self.patch_processing(x).squeeze()
+
+        allx = x.unflatten(0, shape)
+
         # torch.sum in the dim = 1 (would eventually be the attention step), batch x 512
-        return x
+        allx = allx.sum(dim=1)
+        return allx
 
     def get_features(self, x):
 
@@ -428,8 +433,8 @@ class JigsawNetNew(nn.Module):
 
         # ---------- task specific steps -----------------
 
-        x = F.softmax(self.fc(x), dim=1)
-        return x
+        result = F.softmax(self.fc(x), dim=1)
+        return result
 
     def get_feature_size(self):
         return self.feature_size

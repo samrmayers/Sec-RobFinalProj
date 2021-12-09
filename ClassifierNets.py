@@ -118,7 +118,7 @@ def make_network(main_task, main_path, feature_nets, training):
     nets = []
     num_features = 0
     for task, path in task_path_pairs:
-        net = get_network(task)([],0)
+        net = get_network(task)([],0).to(device)
 
         net.load_state_dict(torch.load(path, map_location=device))
         nets.append(net)
