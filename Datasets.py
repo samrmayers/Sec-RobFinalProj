@@ -195,7 +195,7 @@ class JigsawDataset(Dataset):
             if orig_labels:
                 tup = (this_pic, label)
             else:
-                tup = ((torch.stack(input), torch.stack(pos)), torch.Tensor(target))
+                tup = ([torch.stack(input), torch.stack(pos)], torch.Tensor(target))
             self.new_set.append(tup)
         print("done generating data")
 
