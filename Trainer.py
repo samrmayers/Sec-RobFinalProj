@@ -15,7 +15,7 @@ def train(network, trainloader, main_task, main_path, epochs, scheduler_period):
     if main_task == "Colorizer":
         optimizer = optim.RMSprop(network.parameters(), lr=0.001, momentum=0.9)
     else:
-        optimizer = optim.SGD(network.parameters(), lr=0.001, momentum=0.9)
+        optimizer = optim.SGD(network.parameters(), lr=0.01, momentum=0.9)
 
     loss_fn = get_loss(main_task)
 
@@ -57,8 +57,9 @@ def train(network, trainloader, main_task, main_path, epochs, scheduler_period):
                       (epoch + 1, i + 1, running_loss / 1000))
                 running_loss = 0.0
 
+        torch.save(network.state_dict(), main_path)
+
     print('Finished Training')
-    torch.save(network.state_dict(), main_path)
 
 
 # This function assumes a classification network

@@ -5,6 +5,7 @@ import torchvision
 from Util import freeze_module, Normalize
 from FeatureNets import *
 from ResNets import *
+import os
 
 """
 Modules for main classification tasks.
@@ -125,6 +126,6 @@ def make_network(main_task, main_path, feature_nets, training):
         num_features += net.get_feature_size()
 
     main_net = get_network(main_task)(nets, num_features)
-    if not training:
+    if not training or os.path.isfile(main_path):
         main_net.load_state_dict(torch.load(main_path, map_location=device))
     return main_net
