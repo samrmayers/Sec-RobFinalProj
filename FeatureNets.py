@@ -221,31 +221,26 @@ class SelfieNetNew(nn.Module):
     def pos_processing(self, y_pos):
         return F.relu(self.pos(y_pos))
 
-    def x_processing(self, x, x_pos): # x is tuples for each patch, patch[0] is patch, patch[1] is pos
+    def x_processing(self, x): # x is tuples for each patch, patch[0] is patch, patch[1] is pos
+        # x is tuples for each patch, patch[0] is patch, patch[1] is pos
+        pos = x[1]  # pos embeddings
+        x = x[0]  # patches
+        shape = x.shape[0:2]
 
-        # run x through self.net, batch x patches x 3 x 10 x 10 -> batch x patches x 512 (may need to flatten patches x batch into a pseudo batch and then reverse)
-        allx = []
-        for i in range(x.shape[1]):
-            patch = x[:, i, ...]
-            temp = self.patch_processing(patch)
-            allx.append(temp)
+        # run x through self.net, batch x patches x 3 x 10 x 10 -> batch x patches x 512 (may need to flatten patches x batch into a pseudo batch and then reverse)       x = x.flatten((0,1))
+        x = torch.flatten(x, 0, 1)
 
-        # run x_pos through self.pos_processing, batch x patches x 9 -> batch x patches x 512
-        allx_pos = []
-        for i in range(x_pos.shape[1]):
-            patch = x_pos[:, i, ...]
-            temp = self.pos_processing(patch)
-            allx_pos.append(temp)
+        x = self.patch_processing(x).squeeze()
 
-        # add x, x_pos
-        allx = torch.stack(allx, dim=1)
-        allx = allx.squeeze()
-        allx_pos = torch.stack(allx_pos, dim=1)
-        u = torch.add(allx, allx_pos)
+        allx = x.unflatten(0, shape)
+        pos = self.pos_processing(pos)
+        allx = torch.add(allx, pos)
 
+        # should be batch x patch x 512 --> batch x (patchx512)
+        #allx = torch.reshape(allx, (shape[0], self.feature_size))
         # torch.sum in the dim = 1 (would eventually be the attention step), batch x 512
-        u = u.sum(dim=1)  # TODO: change to attention pooling network
-        return u
+        allx = allx.sum(dim=1)
+        return allx
 
     def get_features(self, x):
 
@@ -268,7 +263,8 @@ class SelfieNetNew(nn.Module):
         # put all 9 patches w/ positions through x_processing
         new = torch.stack(newx, dim = 1) # should be batches x patches x 3 x 10 x 10
         newpos = torch.stack(x_pos, dim = 1)
-        return self.x_processing(new, newpos)
+        x_input = (new, newpos)
+        return self.x_processing(x_input)
 
     def forward(self, w):
         # x dims are batch x 3 x 32 x 32
@@ -281,38 +277,26 @@ class SelfieNetNew(nn.Module):
         y_pos = w[3]
 
         # run x, y through self.net, batch x patches x 3 x 10 x 10 -> batch x patches x 512 (may need to flatten patches x batch into a pseudo batch and then reverse)
-        u = self.x_processing(x, x_pos)
+        x_input = (x, x_pos)
+        u = self.x_processing(x_input)
 
         # (ends here for feature net / get_features)
 
         # ---------- task specific steps -----------------
-
-        ally = []
-        for i in range(y.shape[1]):
-            patch = y[:, i, ...]
-            ally.append(self.patch_processing(patch))
-        h = torch.stack(ally, dim=1)
-        h = h.squeeze()
+        shape = y.shape[0:2]
+        y = torch.flatten(y, 0, 1)
+        y = self.patch_processing(y).squeeze()
+        h = y.unflatten(0, shape)
 
         # run x_pos, y_pos through self.pos_processing, batch x patches x 9 -> batch x patches x 512
         y_pos = self.pos_processing(y_pos)
 
         # then add y_pos, batch x 512
-        v = torch.add(u, y_pos)
+        v = torch.add(u, y_pos).unsqueeze(dim=1)
 
         # unsqueeze the above in dim 1, replicate 3 times -> batch x 3 x 512
-        v.unsqueeze(dim = 1)
-        vs = torch.stack([v, v, v], dim=1)
-
-        # dot in dim 2 with y, softmax, -> batch x 3 (cross entropy with target)
-        result = np.empty(shape=(vs.shape[0], vs.shape[1]))
-        for i,batch in enumerate(vs):
-            for j,v in enumerate(batch):
-                temp = torch.dot(v,h[i][j])
-                result[i][j] = temp
-
-        result = torch.tensor(result)
-        result = F.softmax(result, dim=1)
+        result = torch.matmul(v, h.transpose(1,2))
+        result = F.softmax(result, dim=1).squeeze()
         return result
 
     def get_feature_size(self):
