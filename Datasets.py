@@ -176,6 +176,7 @@ class JigsawDataset(Dataset):
 
             # generate patches
             patches = []
+            pos = []
             for r in range(0,2):
                 for c in range(0,2):
                     s = this_pic[0][r*15+r:r*15+15+r,c*15+c:c*15+15+c]
@@ -183,6 +184,9 @@ class JigsawDataset(Dataset):
                     g = this_pic[2][r*15+r:r*15+15+r,c*15+c:c*15+15+c]
                     patch = torch.stack((s, b, g), dim=0)
                     patches.append(patch)
+                    position = [0] * 4
+                    position[2 * r + c] = 1
+                    pos.append(torch.Tensor(position))
 
             input = []
             for i in perm:
@@ -191,7 +195,7 @@ class JigsawDataset(Dataset):
             if orig_labels:
                 tup = (this_pic, label)
             else:
-                tup = (torch.stack(input), torch.Tensor(target))
+                tup = ((torch.stack(input), torch.stack(pos)), torch.Tensor(target))
             self.new_set.append(tup)
         print("done generating data")
 
@@ -267,11 +271,11 @@ class AdvContrastiveDataset(Dataset):
             indices = torch.randperm(batch_size)[:batch_size/2]
             adv_images = attack_fn(images[indices].to(device), labels[indices].to(device)).to(cpu)
 
-            self.new_ims.cat((self.new_ims, adv_images), 0)
-            self.new_labels.cat((self.new_labels, labels[indices]), 0)
+            self.new_ims = torch.cat((self.new_ims, adv_images), 0)
+            self.new_labels = torch.cat((self.new_labels, labels[indices]), 0)
 
-            self.new_ims.cat((self.new_ims, images[~indices]), 0)
-            self.new_labels.cat((self.new_labels, labels[~indices]), 0)
+            self.new_ims = torch.cat((self.new_ims, images[~indices]), 0)
+            self.new_labels = torch.cat((self.new_labels, labels[~indices]), 0)
 
             print(len(self.new_ims))
 
@@ -302,9 +306,9 @@ class AttackDataset(Dataset):
         elif attack == "PGD10":
             attack_fn = attacks.PGD(self.network, eps=2/255, alpha=2/225, steps=10, random_start=True)
         elif attack == "PGD50":
-            attack_fn = attacks.PGD(self.network, eps=2/255, alpha=2/225, steps=50, random_start=True)
+            attack_fn = attacks.PGD(self.network, eps=2/255, alpha=1/225, steps=50, random_start=True)
         elif attack == "BIM":
-            attack_fn = attacks.BIM(self.network, eps=2/255, alpha=2/255, steps=50)
+            attack_fn = attacks.BIM(self.network, eps=2/255, alpha=1/255, steps=50)
         elif attack == "AutoAttack":
             attack_fn = attacks.AutoAttack(self.network, eps=8/255, n_classes=10, version='standard')
         else:
@@ -322,8 +326,8 @@ class AttackDataset(Dataset):
 
             adv_images = attack_fn(images.to(device), labels.to(device)).to(cpu)
 
-            self.new_ims.cat((self.new_ims, adv_images), 0)
-            self.new_labels.cat((self.new_labels, labels), 0)
+            self.new_ims = torch.cat((self.new_ims, adv_images), 0)
+            self.new_labels = torch.cat((self.new_labels, labels), 0)
 
             print(len(self.new_ims))
 
