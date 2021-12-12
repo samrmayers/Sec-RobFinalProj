@@ -200,16 +200,17 @@ class SelfieNetNew(nn.Module):
         self.norm = Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 
         # resnet (first 3 layers encoder, last decoder)
-        self.pretrained = torchvision.models.resnet18(pretrained=True)
-        self.layers = list(self.pretrained._modules.keys())
-        self.finetune = self.pretrained._modules.pop(self.layers[-1])
-        self.net = nn.Sequential(self.pretrained._modules) # should be first 3 layers
-        self.pretrained = None
+        self.net = torchvision.models.resnet18(pretrained=True)
+        self.net.fc = Identity()
 
         # patch pos embedding
         self.pos = nn.Linear(9,512)
 
-        self.feature_size = 512
+        # for h
+        self.fc = nn.Linear(512, 3584)
+
+        #self.feature_size = 512
+        self.feature_size = 4608 # 9 patches x 512
 
     def patch_processing(self, x):
         # resize to batch ( x patches ) x 224 x 224
@@ -229,17 +230,16 @@ class SelfieNetNew(nn.Module):
 
         # run x through self.net, batch x patches x 3 x 10 x 10 -> batch x patches x 512 (may need to flatten patches x batch into a pseudo batch and then reverse)       x = x.flatten((0,1))
         x = torch.flatten(x, 0, 1)
-
         x = self.patch_processing(x).squeeze()
-
         allx = x.unflatten(0, shape)
+
         pos = self.pos_processing(pos)
         allx = torch.add(allx, pos)
 
         # should be batch x patch x 512 --> batch x (patchx512)
-        #allx = torch.reshape(allx, (shape[0], self.feature_size))
+        allx = torch.reshape(allx, (shape[0], shape[1]*512))
         # torch.sum in the dim = 1 (would eventually be the attention step), batch x 512
-        allx = allx.sum(dim=1)
+        #allx = allx.sum(dim=1)
         return allx
 
     def get_features(self, x):
@@ -278,7 +278,7 @@ class SelfieNetNew(nn.Module):
 
         # run x, y through self.net, batch x patches x 3 x 10 x 10 -> batch x patches x 512 (may need to flatten patches x batch into a pseudo batch and then reverse)
         x_input = (x, x_pos)
-        u = self.x_processing(x_input)
+        u = self.x_processing(x_input) # u is batch x 3072
 
         # (ends here for feature net / get_features)
 
@@ -286,15 +286,16 @@ class SelfieNetNew(nn.Module):
         shape = y.shape[0:2]
         y = torch.flatten(y, 0, 1)
         y = self.patch_processing(y).squeeze()
-        h = y.unflatten(0, shape)
+        h = y.unflatten(0, shape)  # h is batch x 3 x 512
 
         # run x_pos, y_pos through self.pos_processing, batch x patches x 9 -> batch x patches x 512
         y_pos = self.pos_processing(y_pos)
 
         # then add y_pos, batch x 512
-        v = torch.add(u, y_pos).unsqueeze(dim=1)
+        v = torch.cat([u, y_pos], dim=1).unsqueeze(dim=1) # should be batch x 1 x 3584
 
-        # unsqueeze the above in dim 1, replicate 3 times -> batch x 3 x 512
+        # put h through layer to make batch x 3 x 3584
+        h = F.relu(self.fc(h))
         result = torch.matmul(v, h.transpose(1,2))
         result = F.softmax(result, dim=1).squeeze()
         return result
