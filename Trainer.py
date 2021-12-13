@@ -35,6 +35,13 @@ def train(network, trainloader, main_task, main_path, epochs, scheduler_period):
                 pos = data[0][1].to(device)
                 labels = data[1].to(device)
                 inputs = (patches, pos)
+            elif main_task == "PatchFill":
+                xpatches = data[0][0].to(device)
+                xpos = data[0][1].to(device)
+                ypatches = data[0][2].to(device)
+                ypos = data[0][3].to(device)
+                labels = data[1].to(device)
+                inputs = (xpatches, xpos, ypatches, ypos)
             else:
                 inputs, labels = data[0].to(device), data[1].to(device)
             #if i == 0:
