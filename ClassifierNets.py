@@ -106,6 +106,8 @@ def get_network(task):
         return ContrastiveNet
     elif task == "JointContrastive":
         return ContrastiveNet
+    elif task == "BEiT":
+        return BEiT
     else:
         raise ValueError(f"Invalid network type {task}")
 

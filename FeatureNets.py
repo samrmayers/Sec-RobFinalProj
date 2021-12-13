@@ -6,6 +6,7 @@ from Util import Normalize, Identity
 import torchvision
 from ResNets import *
 import numpy as np
+from transformers import BeitFeatureExtractor, BeitModel
 
 """
 Modules for pretraining tasks
@@ -615,3 +616,27 @@ class ContrastiveNet(nn.Module):
 
     def get_feature_size(self):
         return self.feature_size
+
+class BEiT(nn.Module):
+    """
+    Use pretrained BEiT for features. No training, no loss, just to get features for classification.
+    """
+    def __init__(self, feature_networks, num_features):
+        super().__init__()
+
+        if len(feature_networks) > 0 or num_features > 0:
+            raise ValueError("Net doesn't accept feature networks")
+
+        self.beit = BeitModel.from_pretrained('microsoft/beit-base-patch16-224-pt22k-ft22k')
+        self.feature_extractor = BeitFeatureExtractor.from_pretrained('microsoft/beit-base-patch16-224-pt22k-ft22k')
+
+        self.feature_size = '?'
+
+    def get_features(self, x):
+        x = self.feature_extractor(images=x, return_tensors="pt")
+        return self.beit(x).pooler_output
+
+    def get_feature_size(self):
+        return self.feature_size
+
+
