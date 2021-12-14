@@ -57,7 +57,6 @@ class ContrastiveJointLoss(nn.Module):
         loss_l = self.cross_entropy_loss(last_features, target)
         return loss_c + self.weight*loss_l
 
-
 def get_loss(task):
     if task == "BasicClassification":
         return nn.CrossEntropyLoss()

@@ -96,7 +96,9 @@ def main(args):
     network = make_network(args.main_task, args.main_path, args.feature_nets, should_train)
     dataloader = get_dataloader(args.dataloader, should_train, args.batch_size, network, args.attack)
 
-    if should_train:
+    if args.main_task == "BEiT":
+      torch.save(network.state_dict(), args.main_path)
+    elif should_train:
         train(network, dataloader, args.main_task, args.main_path, args.epochs, args.scheduler_period)
     else:
         test(network, dataloader)

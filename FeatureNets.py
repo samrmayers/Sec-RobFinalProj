@@ -6,6 +6,7 @@ from Util import Normalize, Identity
 import torchvision
 from ResNets import *
 import numpy as np
+from PIL import Image
 from transformers import BeitFeatureExtractor, BeitModel
 
 """
@@ -630,11 +631,20 @@ class BEiT(nn.Module):
         self.beit = BeitModel.from_pretrained('microsoft/beit-base-patch16-224-pt22k-ft22k')
         self.feature_extractor = BeitFeatureExtractor.from_pretrained('microsoft/beit-base-patch16-224-pt22k-ft22k')
 
-        self.feature_size = '?'
+        self.toPIL = torchvision.transforms.ToPILImage()
+        self.feature_size = 768
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     def get_features(self, x):
-        x = self.feature_extractor(images=x, return_tensors="pt")
-        return self.beit(x).pooler_output
+        images = []
+        for im in x:
+          images.append(self.toPIL(im))
+        x = self.feature_extractor(images=images, return_tensors="pt")["pixel_values"].to(self.device)
+        out = self.beit(pixel_values=x).pooler_output
+        return out
+
+    def forward(self, x):
+        return self.get_features(x)
 
     def get_feature_size(self):
         return self.feature_size
