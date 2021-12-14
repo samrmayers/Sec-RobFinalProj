@@ -42,6 +42,11 @@ def train(network, trainloader, main_task, main_path, epochs, scheduler_period):
                 ypos = data[0][3].to(device)
                 labels = data[1].to(device)
                 inputs = (xpatches, xpos, ypatches, ypos)
+            elif isinstance(x, tuple):
+                x_1 = data[0][0].to(device)
+                x_2 = data[0][1].to(device)
+                labels = data[1].to(device)
+                inputs = (x_1, x_2)
             else:
                 inputs, labels = data[0].to(device), data[1].to(device)
             #if i == 0:

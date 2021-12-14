@@ -104,6 +104,8 @@ def get_network(task):
         return AggNet
     elif task == "Contrastive":
         return ContrastiveNet
+    elif task == "SelfContrastive":
+        return ContrastiveNet
     elif task == "JointContrastive":
         return ContrastiveNet
     elif task == "BEiT":

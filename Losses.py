@@ -57,6 +57,36 @@ class ContrastiveJointLoss(nn.Module):
         loss_l = self.cross_entropy_loss(last_features, target)
         return loss_c + self.weight*loss_l
 
+# Inspired by https://spell.ml/blog/simple-contrastive-learning-representation-using-the-X7QycRIAACQAqLu-
+class SelfContrastiveLoss(nn.Module):
+    def __init__(self, temperature=0.5):
+        super().__init__()
+        self.register_buffer("temperature", torch.tensor(temperature))
+
+    def forward(self, output, target):
+        # target is a dummy here
+
+        z_i = F.normalize(output[0][:, 0:128], dim=1)
+        z_j = F.normalize(output[1][:, 0:128], dim=1)
+
+        batch_size = len(z_i)
+        negatives_mask =(~torch.eye(batch_size * 2, batch_size * 2, dtype=bool)).float()
+
+        representations = torch.cat([z_i, z_j], dim=0)
+        similarity_matrix = F.cosine_similarity(representations.unsqueeze(1), representations.unsqueeze(0), dim=2)
+
+        sim_ij = torch.diag(similarity_matrix, batch_size)
+        sim_ji = torch.diag(similarity_matrix, -batch_size)
+        positives = torch.cat([sim_ij, sim_ji], dim=0)
+
+        nominator = torch.exp(positives / self.temperature)
+        denominator = negatives_mask * torch.exp(similarity_matrix / self.temperature)
+
+        loss_partial = -torch.log(nominator / torch.sum(denominator, dim=1))
+        loss = torch.sum(loss_partial) / (2 * batch_size)
+        return loss
+
+
 def get_loss(task):
     if task == "BasicClassification":
         return nn.CrossEntropyLoss()
@@ -78,6 +108,8 @@ def get_loss(task):
         return nn.CrossEntropyLoss()
     elif task == "Contrastive":
         return SupervisedContrastiveLoss()
+    elif task == "SelfContrastive":
+        return SelfContrastiveLoss()
     elif task == "JointContrastive":
         return ContrastiveJointLoss(weight=20)
     else:

@@ -606,14 +606,19 @@ class ContrastiveNet(nn.Module):
 
     def forward(self, x):
 
-        x = self.get_features(x)
-        x = F.relu(self.fc1(x))
-        z = self.fc2(x)
-        y = self.fc3(x)
+        def prop(ims):
+            ims = self.get_features(ims)
+            ims = F.relu(self.fc1(ims))
+            z = self.fc2(x)
+            y = self.fc3(x)
 
-        x = torch.cat((z,y), dim=1)
+            ims = torch.cat((z,y), dim=1)
+            return ims
 
-        return x
+        if isinstance(x, tuple):
+            return (prop(x[0]), prop(x[1]))
+        else:
+            return prop(x)
 
     def get_feature_size(self):
         return self.feature_size
@@ -650,3 +655,4 @@ class BEiT(nn.Module):
         return self.feature_size
 
 
+        return self.feature_size

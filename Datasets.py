@@ -287,6 +287,35 @@ class AdvContrastiveDataset(Dataset):
     def __getitem__(self, idx):
         return self.trainset[idx]
 
+class SelfContrastiveDataset(Dataset):
+    def __init__(self, train):
+        self.transform = transforms.Compose([
+            transforms.RandomResizedCrop(size=(32,32), scale=(0.2, 1.)),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomApply([
+                transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)
+            ], p=0.8),
+            transforms.RandomGrayscale(p=0.2),
+            transforms.ToTensor()
+        ])
+
+        rootdir = "./traindata" if train else "./testdata"
+        self.base_dataset = torchvision.datasets.CIFAR10(root=rootdir, train=train, download=False)
+
+    def __get_pair__(self, idx):
+        this_image_raw, _ = self.base_dataset[idx]
+
+        t1 = self.transform(this_image_raw)
+        t2 = self.transform(this_image_raw)
+
+        return (t1, t2), torch.tensor(0)
+
+    def __len__(self):
+        return len(self.base_dataset)
+
+    def __getitem__(self, idx):
+        return self.__get_pair__(idx)
+
 
 class AttackDataset(Dataset):
     def __init__(self, base_dataset, network, attack, batch_size):
@@ -362,6 +391,8 @@ def get_dataloader(dataset_type, train, batch_size, network, attack):
         dataset = ColorDataset(train)
     elif dataset_type == "Contrastive":
         dataset = ContrastiveDataset(train)
+    elif dataset_type == "SelfContrastive":
+        dataset = SelfContrastiveDataset(train)
     elif dataset_type == "AdvContrastive":
         dataset = AdvContrastiveDataset(train, network)
     else:
