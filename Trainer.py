@@ -11,11 +11,11 @@ PATH = './cifar_net.pth'
 classes = ('plane', 'car', 'bird', 'cat',
                'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
-def train(network, trainloader, main_task, main_path, epochs, scheduler_period):
+def train(network, trainloader, main_task, main_path, epochs, lr, scheduler_period):
     if main_task == "Colorizer":
-        optimizer = optim.RMSprop(network.parameters(), lr=0.001, momentum=0.9)
+        optimizer = optim.RMSprop(network.parameters(), lr=lr, momentum=0.9)
     else:
-        optimizer = optim.SGD(network.parameters(), lr=0.01, momentum=0.9)
+        optimizer = optim.SGD(network.parameters(), lr=lr, momentum=0.9)
 
     loss_fn = get_loss(main_task)
 
@@ -42,7 +42,7 @@ def train(network, trainloader, main_task, main_path, epochs, scheduler_period):
                 ypos = data[0][3].to(device)
                 labels = data[1].to(device)
                 inputs = (xpatches, xpos, ypatches, ypos)
-            elif isinstance(x, tuple):
+            elif isinstance(data[0], list):
                 x_1 = data[0][0].to(device)
                 x_2 = data[0][1].to(device)
                 labels = data[1].to(device)
@@ -64,8 +64,8 @@ def train(network, trainloader, main_task, main_path, epochs, scheduler_period):
                 sched.step()
 
             running_loss += loss.item()
-            if i % 200 == 199:  # print every 90 mini-batches
-                print('[%d, %5d] loss: %.3f' %
+            if i % 50 == 49:  # print every 90 mini-batches
+                print('[%d, %5d] loss: %.5f' %
                       (epoch + 1, i + 1, running_loss / 1000))
                 running_loss = 0.0
 
@@ -75,7 +75,7 @@ def train(network, trainloader, main_task, main_path, epochs, scheduler_period):
 
 
 # This function assumes a classification network
-def test(net, testloader):
+def test(net, testloader, main_task):
     correct = 0
     total = 0
 
@@ -84,15 +84,23 @@ def test(net, testloader):
 
     with torch.no_grad():
         for data in testloader:
-            images, labels = data[0].to(device), data[1].to(device)
+            if main_task == "Jigsaw":
+                patches = data[0][0].to(device)
+                pos = data[0][1].to(device)
+                labels = data[1].to(device)
+                inputs = (patches, pos)
+            else:
+                inputs, labels = data[0].to(device), data[1].to(device)
 
-            outputs = net(images)
+            outputs = net(inputs)
 
             _, predicted = torch.max(outputs.data, 1)
+            if main_task == "Jigsaw":
+                _, labels = torch.max(labels.data, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
-    print('Network accuracy on test set: %d %%' % (100 * correct / total))
+    print('Network accuracy on test set: %f %%' % round(100.0 * correct / total,2))
 
 
 def main(args):
@@ -104,9 +112,9 @@ def main(args):
     if args.main_task == "BEiT":
       torch.save(network.state_dict(), args.main_path)
     elif should_train:
-        train(network, dataloader, args.main_task, args.main_path, args.epochs, args.scheduler_period)
+        train(network, dataloader, args.main_task, args.main_path, args.epochs, args.lr, args.scheduler_period)
     else:
-        test(network, dataloader)
+        test(network, dataloader, args.main_task)
 
 
 """
@@ -140,6 +148,9 @@ if __name__ == '__main__':
     parser.add_argument('--scheduler_period',dest='scheduler_period', required=False, type=int,
                         default=0,
                         help='The learning rate scheduler period, or 0 if not used')
+    parser.add_argument('--lr',dest='lr', required=False, type=float,
+                        default=0.001,
+                        help='The learning rate')
     parser.add_argument('--batch_size',dest='batch_size', required=False, type=int,
                         default=4,
                         help='The batch size for training or testing.')

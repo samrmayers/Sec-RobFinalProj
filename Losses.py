@@ -62,6 +62,7 @@ class SelfContrastiveLoss(nn.Module):
     def __init__(self, temperature=0.5):
         super().__init__()
         self.register_buffer("temperature", torch.tensor(temperature))
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     def forward(self, output, target):
         # target is a dummy here
@@ -70,7 +71,7 @@ class SelfContrastiveLoss(nn.Module):
         z_j = F.normalize(output[1][:, 0:128], dim=1)
 
         batch_size = len(z_i)
-        negatives_mask =(~torch.eye(batch_size * 2, batch_size * 2, dtype=bool)).float()
+        negatives_mask =(~torch.eye(batch_size * 2, batch_size * 2, dtype=bool)).float().to(self.device)
 
         representations = torch.cat([z_i, z_j], dim=0)
         similarity_matrix = F.cosine_similarity(representations.unsqueeze(1), representations.unsqueeze(0), dim=2)
@@ -85,6 +86,20 @@ class SelfContrastiveLoss(nn.Module):
         loss_partial = -torch.log(nominator / torch.sum(denominator, dim=1))
         loss = torch.sum(loss_partial) / (2 * batch_size)
         return loss
+
+class SelfContrastiveJointLoss(nn.Module):
+    def __init__(self, weight = 1):
+        super().__init__()
+        self.contrastive_loss = SelfContrastiveLoss()
+        self.cross_entropy_loss = nn.CrossEntropyLoss()
+        self.weight = weight
+
+    def forward(self, output, target):
+        last_features_1, last_features_2 = output[0][:, 128:138],output[1][:, 128:138]
+
+        loss_c = self.contrastive_loss(output, target)
+        loss_l = self.cross_entropy_loss(last_features_1, target)+self.cross_entropy_loss(last_features_2, target)
+        return loss_c + self.weight*loss_l
 
 
 def get_loss(task):
@@ -112,5 +127,7 @@ def get_loss(task):
         return SelfContrastiveLoss()
     elif task == "JointContrastive":
         return ContrastiveJointLoss(weight=20)
+    elif task == "JointSelfContrastive":
+        return SelfContrastiveJointLoss(weight=0.05)
     else:
         raise ValueError("No loss specified for this task")

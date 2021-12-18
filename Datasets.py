@@ -205,16 +205,6 @@ class JigsawDataset(Dataset):
     def __getitem__(self, idx):
         return self.new_set[idx]
 
-# transforms for contrastive learning
-    #     transforms = torch.nn.Sequential(
-    #     transforms.RandomResizedCrop(size=size),
-    #     transforms.RandomHorizontalFlip(),
-    #     # transforms.RandomApply([color_jitter], p=0.8),
-    #     transforms.ColorJitter(0.8 * s, 0.8 * s, 0.8 * s, 0.2 * s),
-    #     transforms.RandomGrayscale(p=0.2),
-    #     # GaussianBlur(kernel_size=int(0.1 * size)),
-    # )
-
 class ContrastiveDataset(Dataset):
     def __init__(self, train):
         self.transform = transforms.Compose([
@@ -230,56 +220,6 @@ class ContrastiveDataset(Dataset):
         rootdir = "./traindata" if train else "./testdata"
         self.trainset = torchvision.datasets.CIFAR10(root=rootdir, train=train,
                                                 download=False, transform=self.transform)
-
-    def __len__(self):
-        return len(self.trainset)
-
-    def __getitem__(self, idx):
-        return self.trainset[idx]
-
-class AdvContrastiveDataset(Dataset):
-    def __init__(self, train, network, batch_size):
-        rootdir = "./traindata" if train else "./testdata"
-        self.base_dataset = torchvision.datasets.CIFAR10(root=rootdir, train=train,
-                                                download=False, transform=self.transform)
-
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        cpu = torch.device("cpu")
-        self.network = network.to(device)
-
-        sample_im, _ = self.base_dataset[0]
-
-        self.new_ims = torch.empty((0, *(sample_im.shape)))
-        self.new_labels = torch.empty((0))
-
-        attack_fn = attacks.FGSM(self.network, eps=2/255)
-
-        self.transform = transforms.Compose([
-            transforms.RandomResizedCrop(size=(32,32), scale=(0.2, 1.)),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomApply([
-                transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)
-            ], p=0.5),
-            transforms.RandomGrayscale(p=0.2),
-            transforms.ToTensor(),
-        ])
-
-        self.dataloader = torch.utils.data.DataLoader(self.base_dataset, batch_size=batch_size, num_workers=2)
-
-        # Replace half the images with adversarial versions
-        for images, labels in self.dataloader:
-            indices = torch.randperm(batch_size)[:batch_size/2]
-            adv_images = attack_fn(images[indices].to(device), labels[indices].to(device)).to(cpu)
-
-            self.new_ims = torch.cat((self.new_ims, adv_images), 0)
-            self.new_labels = torch.cat((self.new_labels, labels[indices]), 0)
-
-            self.new_ims = torch.cat((self.new_ims, images[~indices]), 0)
-            self.new_labels = torch.cat((self.new_labels, labels[~indices]), 0)
-
-            print(len(self.new_ims))
-
-    # Needs to return examples, corresponding adversarial examples (as a pair), and a mask
 
     def __len__(self):
         return len(self.trainset)
@@ -332,14 +272,10 @@ class AttackDataset(Dataset):
 
         if attack == "FGSM":
             attack_fn = attacks.FGSM(self.network, eps=2/255)
+        elif attack == "PGD7":
+            attack_fn = attacks.PGD(self.network, eps=8/255, alpha=2/255, steps=7, random_start=True)
         elif attack == "PGD10":
-            attack_fn = attacks.PGD(self.network, eps=2/255, alpha=2/225, steps=10, random_start=True)
-        elif attack == "PGD50":
-            attack_fn = attacks.PGD(self.network, eps=2/255, alpha=1/225, steps=50, random_start=True)
-        elif attack == "BIM":
-            attack_fn = attacks.BIM(self.network, eps=2/255, alpha=1/255, steps=50)
-        elif attack == "AutoAttack":
-            attack_fn = attacks.AutoAttack(self.network, eps=8/255, n_classes=10, version='standard')
+            attack_fn = attacks.PGD(self.network, eps=2/255, alpha=2/255, steps=10, random_start=True)
         else:
             raise ValueError("Not a valid attack type")
 
@@ -393,8 +329,6 @@ def get_dataloader(dataset_type, train, batch_size, network, attack):
         dataset = ContrastiveDataset(train)
     elif dataset_type == "SelfContrastive":
         dataset = SelfContrastiveDataset(train)
-    elif dataset_type == "AdvContrastive":
-        dataset = AdvContrastiveDataset(train, network)
     else:
         raise ValueError("Not a valid dataset type")
 

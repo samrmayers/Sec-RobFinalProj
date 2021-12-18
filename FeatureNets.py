@@ -404,26 +404,30 @@ class JigsawNetNew(nn.Module):
         return allx
 
     def get_features(self, x):
-
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         # break image into 4 patches
         newx = []
-        pos = []
+        new_pos = []
         for pic in x:
             this_pic = torch.clone(pic)
+            patches = []
+            pos = []
             for r in range(0, 2):
                 for c in range(0, 2):
                     s = this_pic[0][r * 15 + r:r * 15 + 15 + r, c * 15 + c:c * 15 + 15 + c]
                     b = this_pic[1][r * 15 + r:r * 15 + 15 + r, c * 15 + c:c * 15 + 15 + c]
                     g = this_pic[2][r * 15 + r:r * 15 + 15 + r, c * 15 + c:c * 15 + 15 + c]
                     patch = torch.stack((s, b, g), dim=0)
-                    newx.append(patch)
+                    patches.append(patch)
                     position = [0] * 4
                     position[2 * r + c] = 1
-                    pos.append(torch.Tensor(position))
+                    pos.append(torch.Tensor(position).to(device))
+            newx.append(torch.stack(patches,dim=0))
+            new_pos.append(torch.stack(pos, dim=0))
 
         # put all 9 patches w/ positions through x_processing
-        newx = torch.stack(newx, dim=1) # should be batches x patches x 3 x 10 x 10
-        return self.x_processing((newx,torch.stack(pos, dim=1)))
+        newx = torch.stack(newx, dim=0) # should be batches x patches x 3 x 10 x 10
+        return self.x_processing((newx, torch.stack(pos, dim=0)))
 
     def forward(self, x):
         # x dims are batch x 3 x 32 x 32
@@ -609,8 +613,8 @@ class ContrastiveNet(nn.Module):
         def prop(ims):
             ims = self.get_features(ims)
             ims = F.relu(self.fc1(ims))
-            z = self.fc2(x)
-            y = self.fc3(x)
+            z = self.fc2(ims)
+            y = self.fc3(ims)
 
             ims = torch.cat((z,y), dim=1)
             return ims
@@ -634,17 +638,26 @@ class BEiT(nn.Module):
             raise ValueError("Net doesn't accept feature networks")
 
         self.beit = BeitModel.from_pretrained('microsoft/beit-base-patch16-224-pt22k-ft22k')
-        self.feature_extractor = BeitFeatureExtractor.from_pretrained('microsoft/beit-base-patch16-224-pt22k-ft22k')
+        # self.feature_extractor = BeitFeatureExtractor.from_pretrained('microsoft/beit-base-patch16-224-pt22k-ft22k')
+        # self.feature_extractor.do_resize = False
+        # self.feature_extractor.do_normalize = False
+        # print(self.feature_extractor)
 
-        self.toPIL = torchvision.transforms.ToPILImage()
+        self.rescale = torchvision.transforms.Resize((224,224))
+        self.norm = Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+
         self.feature_size = 768
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.cpu = torch.device("cpu")
 
     def get_features(self, x):
-        images = []
-        for im in x:
-          images.append(self.toPIL(im))
-        x = self.feature_extractor(images=images, return_tensors="pt")["pixel_values"].to(self.device)
+        # x = self.rescale(x)
+        x = F.interpolate(x, size=(224,224), mode='bilinear')
+        x = self.norm(x)
+        # images = []
+        # for im in x:
+        #   images.append(im.to(self.cpu))
+        # x = self.feature_extractor(images=images, return_tensors="pt")["pixel_values"].to(self.device)
         out = self.beit(pixel_values=x).pooler_output
         return out
 
@@ -652,7 +665,4 @@ class BEiT(nn.Module):
         return self.get_features(x)
 
     def get_feature_size(self):
-        return self.feature_size
-
-
         return self.feature_size

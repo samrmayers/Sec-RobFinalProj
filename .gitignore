@@ -10,6 +10,7 @@ include/
 lib/
 share/
 pyvenv.cfg
+networks/*
 
 # C extensions
 *.so

@@ -108,6 +108,8 @@ def get_network(task):
         return ContrastiveNet
     elif task == "JointContrastive":
         return ContrastiveNet
+    elif task == "JointSelfContrastive":
+        return ContrastiveNet
     elif task == "BEiT":
         return BEiT
     else:
@@ -125,7 +127,7 @@ def make_network(main_task, main_path, feature_nets, training):
     for task, path in task_path_pairs:
         net = get_network(task)([],0).to(device)
 
-        net.load_state_dict(torch.load(path, map_location=device))
+        net.load_state_dict(torch.load(path, map_location=device), strict=False)
         nets.append(net)
         num_features += net.get_feature_size()
 
