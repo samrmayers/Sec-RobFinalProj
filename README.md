@@ -28,12 +28,12 @@ python Trainer.py --train True --main_task AggNet --main_path ./networks/jigsaw_
 
 Evaluate an aggregation network
 ```
-python Trainer.py --train True --main_task AggNet --main_path ./networks/jigsaw_resnet_aggnet_weights --feature_nets Jigsaw ./networks/jigsaw2_weights ResNet18 ./networks/resnet18_weights --dataloader Base --batch_size 100 --epochs 10
+python Trainer.py --train False --main_task AggNet --main_path ./networks/jigsaw_resnet_aggnet_weights --feature_nets Jigsaw ./networks/jigsaw2_weights ResNet18 ./networks/resnet18_weights --dataloader Base --batch_size 100 --epochs 10
 ```
 
 Attack an aggregation network using FGSM
 ```
-python Trainer.py --train True --main_task AggNet --main_path ./networks/jigsaw_resnet_aggnet_weights --feature_nets Jigsaw ./networks/jigsaw2_weights ResNet18 ./networks/resnet18_weights --dataloader Base --batch_size 100 --epochs 10 --attack FGSM
+python Trainer.py --train False --main_task AggNet --main_path ./networks/jigsaw_resnet_aggnet_weights --feature_nets Jigsaw ./networks/jigsaw2_weights ResNet18 ./networks/resnet18_weights --dataloader Base --batch_size 100 --epochs 10 --attack FGSM
 ```
 
 ## Code References:
